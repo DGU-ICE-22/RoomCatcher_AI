@@ -22,7 +22,7 @@ db.sqlite3
 *.ipynb
 
 # Virtual environments
-Roomcatcher/
+RoomCatcher_venv/
 env/
 ENV/
 .venv/
