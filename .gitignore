@@ -97,3 +97,5 @@ coverage.xml
 
 # macOS
 .DS_Store
+
+secret.json
