@@ -97,8 +97,3 @@ coverage.xml
 
 # macOS
 .DS_Store
-
-# .gitignore 파일에서 무시 규칙 앞에 !를 추가
-!Lib/site-packages/django/conf/__pycache__/__init__.cpython-39.pyc
-!Lib/site-packages/django/conf/__pycache__/global_settings.cpython-39.pyc
-# 필요한 다른 파일들도 동일하게 추가
