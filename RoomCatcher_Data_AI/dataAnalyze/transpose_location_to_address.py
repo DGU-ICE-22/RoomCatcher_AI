@@ -14,8 +14,7 @@ def get_address_from_coordinates(x, y, API_KEY):
     if response.status_code == 200:
         data = response.json()
         if data['response']['status'] == 'OK':
-            return data['response']['result'][0]['text']
-    return None
+            return data['response']['result'][0]['text'] # return data['response']['result'][1]['text'] 로 하면 도로명 주소가 나옴    return None
 
 def get_secret(setting, secrets):
     try:
@@ -101,6 +100,48 @@ def transpose_location_to_address():
         # 연결 종료
         cursor.close()
         connection.close()
+        
+def update_missing_addresses():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    secret_file = os.path.join(base_dir, '..', '..','secret.json')
+
+    with open(secret_file) as f:
+        secrets = json.loads(f.read())
+
+    # API 키 설정
+    API_KEY = get_secret('API_KEY', secrets)
+
+    # SQLite3 데이터베이스 연결
+    connection = sqlite3.connect('room_lists.db')
+    cursor = connection.cursor()
+
+    try:
+        # 결측치가 있는 레코드 선택
+        cursor.execute("SELECT id, location FROM room_lists WHERE address IS NULL OR address = ''")
+        rows = cursor.fetchall()
+
+        # 결측치 주소 업데이트
+        for row in rows:
+            row_id, location = row
+            location = json.loads(location)
+            x, y = location[0], location[1]
+            address = get_address_from_coordinates(x, y, API_KEY)
+            if address:
+                cursor.execute("UPDATE room_lists SET address = ? WHERE id = ?", (address, row_id))
+
+        # 변경사항 커밋
+        connection.commit()
+    except sqlite3.Error as err:
+        print(f"Error: {err}")
+        # 오류가 발생하면 롤백
+        connection.rollback()
+    finally:
+        # 연결 종료
+        cursor.close()
+        connection.close()
+
+    print("Missing addresses have been updated.")
 
 if __name__ == '__main__':
-    transpose_location_to_address()
+    # transpose_location_to_address()
+    update_missing_addresses()
