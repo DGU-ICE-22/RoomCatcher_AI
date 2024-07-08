@@ -1,8 +1,6 @@
-import pandas as pd
 import requests
 import os 
 import json
-import ast
 from django.core.exceptions import ImproperlyConfigured
 from product_crawling import product_crawling
 import sqlite3
