@@ -1,6 +1,6 @@
 import json
+from django.core.exceptions import ImproperlyConfigured
 import requests
-import transpose_location_to_address
 def get_rooms(page, headers):
         url = (
             f"https://www.dabangapp.com/api/3/room/new-list/multi-room/bbox?api_version=3.0.1&call_type=web&filters=%7B%22multi_room_type%22%3A%5B0%2C1%2C2%5D%2C%22selling_type%22%3A%5B0%2C1%5D%2C%22deposit_range%22%3A%5B0%2C999999%5D%2C%22price_range%22%3A%5B0%2C999999%5D%2C%22trade_range%22%3A%5B0%2C999999%5D%2C%22maintenance_cost_range%22%3A%5B0%2C999999%5D%2C%22room_size%22%3A%5B0%2C999999%5D%2C%22supply_space_range%22%3A%5B0%2C999999%5D%2C%22room_floor_multi%22%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C-1%2C0%5D%2C%22division%22%3Afalse%2C%22duplex%22%3Afalse%2C%22room_type%22%3A%5B1%2C2%5D%2C%22use_approval_date_range%22%3A%5B0%2C999999%5D%2C%22parking_average_range%22%3A%5B0%2C999999%5D%2C%22household_num_range%22%3A%5B0%2C999999%5D%2C%22parking%22%3Afalse%2C%22short_lease%22%3Afalse%2C%22full_option%22%3Afalse%2C%22elevator%22%3Afalse%2C%22balcony%22%3Afalse%2C%22safety%22%3Afalse%2C%22pano%22%3Afalse%2C%22is_contract%22%3Afalse%2C%22deal_type%22%3A%5B0%2C1%5D%7D&location=%5B%5B126.7398098%2C37.3487658%5D%2C%5B127.2891262%2C37.6396855%5D%5D&page={page}&version=1&zoom=11"
@@ -8,9 +8,16 @@ def get_rooms(page, headers):
         response = requests.get(url, headers=headers)
         return response.json()
     
+def get_secret(setting, secrets):
+    try:
+        return secrets[setting]
+    except KeyError:
+        error_msg = "Set the {} environment variable".format(setting)
+        raise ImproperlyConfigured(error_msg)
+    
 def product_crawling(secrets):
     # 요청 헤더 설정
-    headers = transpose_location_to_address.get_secret('headersCrawling', secrets)
+    headers = get_secret('headersCrawling', secrets)
 
     room_list_result = []
 
@@ -64,5 +71,92 @@ def product_crawling(secrets):
     #         ])
     #         room_writer.writerow([])  # 빈 행 추가
         
+def product_crawling_kb():
+
+    url = "https://api.kbland.kr/land-property/propList/filter"
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Content-Type": "application/json;charset=UTF-8",
+        "Origin": "https://kbland.kr",
+        "Referer": "https://kbland.kr/",
+        "Sec-Ch-Ua": '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"macOS"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    }
+
+    data = {
+        "endLat": 37.5268168,
+        "endLng": 126.9377604,
+        "honeyYn": "0",
+        "selectCode": "2",
+        "startLat": 37.5128101,
+        "startLng": 126.9136205,
+        "webCheck": "Y",
+        "zoomLevel": 16,
+        "거래유형": "2,3",
+        "건폐율시작값": "",
+        "건폐율종료값": "",
+        "관리비시작값": "",
+        "관리비종료값": "",
+        "구조": "",
+        "매매시작값": "",
+        "매매전세차시작값": "",
+        "매매전세차종료값": "",
+        "매매종료값": "",
+        "매물": "",
+        "면적시작값": "",
+        "면적종료값": "",
+        "물건종류": "34,35",
+        "방수": "",
+        "보안옵션": "",
+        "보증금시작값": "",
+        "보증금종료값": "",
+        "분양단지구분코드": "X",
+        "분양진행단계코드": "S01,S11,S12",
+        "사진있는매물순": True,
+        "세대수시작값": "",
+        "세대수종료값": "",
+        "엘리베이터": "",
+        "옵션": "",
+        "욕실수": "",
+        "용도지역": "",
+        "용적률시작값": "",
+        "용적률종료값": "",
+        "월세수익률시작값": "",
+        "월세수익률종료값": "",
+        "월세시작값": "",
+        "월세종료값": "",
+        "융자금": "",
+        "일반분양여부": "1,0",
+        "전세가율시작값": "",
+        "전세가율종료값": "",
+        "전자계약여부": "0",
+        "점포수시작값": "",
+        "점포수종료값": "",
+        "정렬타입": "date",
+        "주차": "",
+        "준공년도시작값": "",
+        "준공년도종료값": "",
+        "중복타입": "01",
+        "지목": "",
+        "지상층": "",
+        "지하층": "",
+        "추진현황": "",
+        "클러스터식별자": "5102230332",
+        "페이지목록수": 30,
+        "페이지번호": 1
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    print(response.status_code)
+    print(response.json())
+    
 if __name__ == "__main__":
-    product_crawling()
+    product_crawling_kb()
