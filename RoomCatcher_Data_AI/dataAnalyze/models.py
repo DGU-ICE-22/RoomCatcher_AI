@@ -12,6 +12,9 @@ class Product(models.Model):
     productImage = models.CharField(max_length=200)
     productIsContract = models.BooleanField()
     productIsQuick = models.BooleanField()
+    
+    class Meta:
+        db_table = 'dataAnalyze_product'
 
 class Tag(models.Model):
     id = models.IntegerField(primary_key=True)

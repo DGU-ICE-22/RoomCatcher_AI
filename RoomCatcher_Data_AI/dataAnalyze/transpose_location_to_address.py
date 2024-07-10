@@ -2,7 +2,7 @@ import requests
 import os 
 import json
 from django.core.exceptions import ImproperlyConfigured
-from product_crawling import product_crawling
+from .product_crawling import product_crawling
 import sqlite3
 
 # 주소 변환 함수 
@@ -29,7 +29,7 @@ def transpose_location_to_address():
         secrets = json.loads(f.read())
 
     # 데이터 가져오기
-    room_data = product_crawling()
+    room_data = product_crawling(secrets)
     # API 키 설정
     API_KEY = get_secret('API_KEY', secrets)
 
@@ -53,38 +53,34 @@ def transpose_location_to_address():
     try:
         # 테이블 생성 (없을 경우)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS room_lists (
+            CREATE TABLE IF NOT EXISTS dataAnalyze_product (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                room_type TEXT,
-                selling_type TEXT,
-                is_quick BOOLEAN,
-                price_title TEXT,
-                location TEXT,
-                is_contract BOOLEAN,
-                title TEXT,
-                room_more_info TEXT,
-                img_url TEXT,
-                img_urls TEXT,
-                address TEXT
+                productRoomType TEXT,
+                productSellingType TEXT,
+                productIsQuick BOOLEAN,
+                productPrice TEXT,
+                productIsContract BOOLEAN,
+                productName TEXT,
+                productInfo TEXT,
+                productImage TEXT,
+                productAddr TEXT
             )
         """)
 
         # 데이터 삽입
         for room in room_data:
             cursor.execute("""
-                INSERT INTO room_lists (room_type, selling_type, is_quick, price_title, location, is_contract, title, room_more_info, img_url, img_urls, address)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO dataAnalyze_product (productRoomType, productSellingType, productIsQuick, productPrice, productIsContract, productName, productInfo, productImage, productAddr)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 room[1][0],
                 room[1][1],
                 room[1][2],
                 room[1][3],
-                json.dumps(room[1][4]),
                 room[1][5],
                 room[1][6],
                 room[1][7],
-                room[1][8],
-                json.dumps(room[1][9]),
+                json.dumps([room[1][8], room[1][9]]),
                 room[1][10]  # address
             ))
 
@@ -115,7 +111,7 @@ def update_missing_addresses():
 
     try:
         # 결측치가 있는 레코드 선택
-        cursor.execute("SELECT id, location FROM room_lists WHERE address IS NULL OR address = ''")
+        cursor.execute("SELECT id, location FROM dataAnalyze_product WHERE productAddr IS NULL OR productAddr = ''")
         rows = cursor.fetchall()
 
         # 결측치 주소 업데이트
@@ -125,7 +121,7 @@ def update_missing_addresses():
             x, y = location[0], location[1]
             address = get_address_from_coordinates(x, y, API_KEY)
             if address:
-                cursor.execute("UPDATE room_lists SET address = ? WHERE id = ?", (address, row_id))
+                cursor.execute("UPDATE dataAnalyze_product SET productAddr = ? WHERE id = ?", (address, row_id))
 
         # 변경사항 커밋
         connection.commit()
@@ -141,5 +137,5 @@ def update_missing_addresses():
     print("Missing addresses have been updated.")
 
 if __name__ == '__main__':
-    # transpose_location_to_address()
+    transpose_location_to_address()
     update_missing_addresses()
