@@ -12,3 +12,12 @@ class Product(models.Model):
     productImage = models.CharField(max_length=200)
     productIsContract = models.BooleanField()
     productIsQuick = models.BooleanField()
+
+class Tag(models.Model):
+    id = models.IntegerField(primary_key=True)
+    tagName = models.CharField(max_length=30)
+
+class ProductTag(models.Model):
+    id = models.IntegerField(primary_key=True)
+    productId = models.ForeignKey(Product, on_delete=models.CASCADE)
+    tagId = models.ForeignKey(Tag, on_delete=models.CASCADE)
