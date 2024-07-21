@@ -1,6 +1,9 @@
 import json
+from time import sleep
 from django.core.exceptions import ImproperlyConfigured
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 def get_rooms(page, headers):
         url = (
             f"https://www.dabangapp.com/api/3/room/new-list/multi-room/bbox?api_version=3.0.1&call_type=web&filters=%7B%22multi_room_type%22%3A%5B0%2C1%2C2%5D%2C%22selling_type%22%3A%5B0%2C1%5D%2C%22deposit_range%22%3A%5B0%2C999999%5D%2C%22price_range%22%3A%5B0%2C999999%5D%2C%22trade_range%22%3A%5B0%2C999999%5D%2C%22maintenance_cost_range%22%3A%5B0%2C999999%5D%2C%22room_size%22%3A%5B0%2C999999%5D%2C%22supply_space_range%22%3A%5B0%2C999999%5D%2C%22room_floor_multi%22%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C-1%2C0%5D%2C%22division%22%3Afalse%2C%22duplex%22%3Afalse%2C%22room_type%22%3A%5B1%2C2%5D%2C%22use_approval_date_range%22%3A%5B0%2C999999%5D%2C%22parking_average_range%22%3A%5B0%2C999999%5D%2C%22household_num_range%22%3A%5B0%2C999999%5D%2C%22parking%22%3Afalse%2C%22short_lease%22%3Afalse%2C%22full_option%22%3Afalse%2C%22elevator%22%3Afalse%2C%22balcony%22%3Afalse%2C%22safety%22%3Afalse%2C%22pano%22%3Afalse%2C%22is_contract%22%3Afalse%2C%22deal_type%22%3A%5B0%2C1%5D%7D&location=%5B%5B126.7398098%2C37.3487658%5D%2C%5B127.2891262%2C37.6396855%5D%5D&page={page}&version=1&zoom=11"
@@ -70,9 +73,8 @@ def product_crawling(secrets):
     #             room.get('img_urls')         
     #         ])
     #         room_writer.writerow([])  # 빈 행 추가
-        
-def product_crawling_kb():
 
+def product_crawling_kb(cluster_id):
     url = "https://api.kbland.kr/land-property/propList/filter"
     headers = {
         "Accept": "application/json, text/plain, */*",
@@ -91,12 +93,12 @@ def product_crawling_kb():
     }
 
     data = {
-        "endLat": 37.5268168,
-        "endLng": 126.9377604,
+        "endLat": 37.7013,  # 서울의 북동쪽 끝 위도
+        "endLng": 127.1838,  # 서울의 북동쪽 끝 경도
         "honeyYn": "0",
         "selectCode": "2",
-        "startLat": 37.5128101,
-        "startLng": 126.9136205,
+        "startLat": 37.4283,  # 서울의 남서쪽 끝 위도
+        "startLng": 126.7647,  # 서울의 남서쪽 끝 경도
         "webCheck": "Y",
         "zoomLevel": 16,
         "거래유형": "2,3",
@@ -148,15 +150,30 @@ def product_crawling_kb():
         "지상층": "",
         "지하층": "",
         "추진현황": "",
-        "클러스터식별자": "5102230332",
+        "클러스터식별자": cluster_id,
         "페이지목록수": 30,
         "페이지번호": 1
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to retrieve data for cluster {cluster_id}. Status code: {response.status_code}")
+        return None
 
-    print(response.status_code)
-    print(response.json())
-    
+def main():
+    cluster_ids = (range(5102230000, 5102240000))  # 클러스터 식별자 목록
+    all_data = []
+    result_ids = []
+    for cluster_id in cluster_ids:
+        data = product_crawling_kb(str(cluster_id))
+        if data and data["dataBody"]["resultCode"]!=30500 and data["dataBody"]["resultCode"]!=30210:
+            all_data.append(data)
+            result_ids.append(cluster_id)
+    # all_data를 처리하거나 파일로 저장하는 등의 작업을 수행
+    print(all_data)
+    print(result_ids)
+
 if __name__ == "__main__":
-    product_crawling_kb()
+    main()
