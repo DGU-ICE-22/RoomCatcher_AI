@@ -1,7 +1,7 @@
 import json
 from time import sleep
 from django.core.exceptions import ImproperlyConfigured
-import requests
+import requests, os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def get_rooms(headers):
@@ -25,7 +25,7 @@ def product_crawling(cluster_id, secrets):
         "endLat": 37.7013,  # 서울의 북동쪽 끝 위도
         "endLng": 127.1838,  # 서울의 북동쪽 끝 경도
         "honeyYn": "0",
-        "selectCode": "2",
+        "selectCode": "1,2,3",
         "startLat": 37.4283,  # 서울의 남서쪽 끝 위도
         "startLng": 126.7647,  # 서울의 남서쪽 끝 경도
         "webCheck": "Y",
@@ -91,12 +91,11 @@ def product_crawling(cluster_id, secrets):
         print(f"Failed to retrieve data for cluster {cluster_id}. Status code: {response.status_code}")
         return None
 
-def extract_enable_clusterId(cluster_ids, mode=False, start=0, end=0):
+def extract_enable_clusterId(secret, cluster_ids, mode=False, start=0, end=0):
     if mode:
         cluster_ids = range(start, end)
     all_data = []
     result_ids = []
-    secret = json.loads(open("../secret.json").read())
     for cluster_id in cluster_ids:
         data = product_crawling(str(cluster_id), secret)
         if data and data["dataBody"]["resultCode"] != 30500 and data["dataBody"]["resultCode"] != 30210:
@@ -114,14 +113,20 @@ def extract_enable_clusterId(cluster_ids, mode=False, start=0, end=0):
         
     return all_data
 
-def main():
+def product_crawling_v2(secret):
     # txt 파일에서 클러스터 ID 리스트를 읽어옴
-    with open("result_ids.txt", "r") as file:
+    with open("cluster_ids.txt", "r") as file:
         num_list = [int(line.strip()) for line in file.readlines()]
         
     #mode가 True이면 사용 가능한 클러스터 ID를 txt 파일에 저장. 뒤의 숫자들은 범위를 찾고자 하는 id의 범위를 나타냄.
-    data = extract_enable_clusterId(num_list, False, 5102231000, 5102232000)
-    print(data)
+    data = extract_enable_clusterId(secret, num_list, False, 5102231000, 5102232000)
+    
+    return(data)
     
 if __name__ == "__main__":
-    main()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    secret_file = os.path.join(base_dir, '..', '..','secret.json')
+
+    with open(secret_file) as f:
+        secrets = json.loads(f.read())
+    print(product_crawling_v2(secrets))

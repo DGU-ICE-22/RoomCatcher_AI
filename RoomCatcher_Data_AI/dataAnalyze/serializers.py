@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Tag, ProductTag
+from .models import Product, Tag, ProductTag, ProductKB
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,4 +14,9 @@ class TagSerializer(serializers.ModelSerializer):
 class ProductTagSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductTag
+        fields = "__all__"
+        
+class ProductKBSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductKB
         fields = "__all__"
