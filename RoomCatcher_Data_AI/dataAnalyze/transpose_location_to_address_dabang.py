@@ -2,17 +2,32 @@ import requests
 import os 
 import json
 from django.core.exceptions import ImproperlyConfigured
-from .product_crawling import product_crawling
+from product_crawling import product_crawling
 import sqlite3
 
 # 주소 변환 함수 
 def get_address_from_coordinates(x, y, API_KEY):
-    url = f'https://api.vworld.kr/req/address?service=address&request=getAddress&type=both&crs=epsg:4326&version=2.0&point={x},{y}&zipcode=false&simple=false&key={API_KEY}'
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        if data['response']['status'] == 'OK':
-            return data['response']['result'][0]['text'] # return data['response']['result'][1]['text'] 로 하면 도로명 주소가 나옴    return None
+    try:
+        url = f'https://api.vworld.kr/req/address?service=address&request=getAddress&type=both&crs=epsg:4326&version=2.0&point={x},{y}&zipcode=false&simple=false&key={API_KEY}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('response', {}).get('status') == 'OK':
+                results = data['response'].get('result', [])
+                if results:
+                    return results[0].get('text')  # 도로명 주소가 필요하면 인덱스를 1로 변경
+        else:
+            print(f"Error: HTTP {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Request error: {e}")
+    except json.JSONDecodeError as e:
+        print("JSON decoding error:", e)
+    except KeyError as e:
+        print("Key error:", e)
+    except IndexError as e:
+        print("Index error:", e)
+
+    return None
 
 def get_secret(setting, secrets):
     try:
