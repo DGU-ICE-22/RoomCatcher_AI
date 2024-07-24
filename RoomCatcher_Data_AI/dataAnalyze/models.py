@@ -20,12 +20,8 @@ class Tag(models.Model):
     id = models.IntegerField(primary_key=True)
     tagName = models.CharField(max_length=30)
 
-class ProductTag(models.Model):
-    id = models.IntegerField(primary_key=True)
-    productId = models.ForeignKey(Product, on_delete=models.CASCADE)
-    tagId = models.ForeignKey(Tag, on_delete=models.CASCADE)
-    
 class ProductKB(models.Model):
+    id = models.IntegerField(primary_key=True, auto_created=True)
     floor_type = models.CharField(max_length=10, blank=True, null=True)  # 해당층구분
     total_area = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)  # 연면적
     num_bathrooms = models.IntegerField(blank=True, null=True)  # 욕실수
@@ -88,6 +84,11 @@ class ProductKB(models.Model):
     def __str__(self):
         return self.listing_name
     
+class ProductTag(models.Model):
+    id = models.IntegerField(primary_key=True)
+    productId = models.ForeignKey(ProductKB, on_delete=models.CASCADE)
+    tagId = models.ForeignKey(Tag, on_delete=models.CASCADE)
+  
 # totalCnt
 # wgs84경도
 # wgs84위도
