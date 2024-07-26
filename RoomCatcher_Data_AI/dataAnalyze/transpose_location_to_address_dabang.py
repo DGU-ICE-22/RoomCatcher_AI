@@ -2,7 +2,7 @@ import requests
 import os 
 import json
 from django.core.exceptions import ImproperlyConfigured
-from .product_crawling import product_crawling
+from product_crawling import product_crawling
 import sqlite3
 
 # 주소 변환 함수 
@@ -18,6 +18,7 @@ def get_address_from_coordinates(x, y, API_KEY):
                     return results[0].get('text')  # 도로명 주소가 필요하면 인덱스를 1로 변경
         else:
             print(f"Error: HTTP {response.status_code}")
+            
     except requests.RequestException as e:
         print(f"Request error: {e}")
     except json.JSONDecodeError as e:

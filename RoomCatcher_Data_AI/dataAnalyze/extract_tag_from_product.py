@@ -17,7 +17,7 @@ def extract_keywords(text):
     # 요청할 URL
     url = 'https://wordcount.com/api/extract_keywords'
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..','secret.json')
+    secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
@@ -34,20 +34,18 @@ def extract_keywords(text):
     # POST 요청 보내기
     response = requests.post(url, headers=headers, json=data)
 
-    # 응답 상태 코드 출력
-    print(f'Status Code: {response.status_code}')
-
     # 응답 내용 바이너리로 읽기
     response_content = response.content
 
     # 응답 내용을 텍스트로 디코딩 (UTF-8로 디코딩 시도)
     response_text = response_content.decode('utf-8')
-    # 키워드를 분리하고 '-' 제거
-    keywords = response_text.split('\n')
-    cleaned_keywords = [keyword.replace('-','').replace('키워드:','').strip() for keyword in keywords if keyword.strip()]
+    response_json = json.loads(response_text)
+    content = response_json.get('content', '')
 
-    # 키워드를 문자열로 결합하여 반환
-    return ', '.join(cleaned_keywords)
+    # 키워드를 쉼표로 분리하여 리스트로 반환
+    keywords = [keyword.replace('-', '').replace('키워드:', '').strip() for keyword in content.replace('\n', ',').split(',') if keyword.strip()]
+
+    return keywords
 
 def add_tags_to_db():
     # SQLite 데이터베이스 경로

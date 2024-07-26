@@ -38,6 +38,7 @@ ENV/
 *.xls
 *.xlsx
 *.db
+*.session.sql
 # Machine learning libraries
 /data/
 *.joblib
