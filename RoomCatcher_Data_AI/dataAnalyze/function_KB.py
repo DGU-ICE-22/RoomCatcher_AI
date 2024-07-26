@@ -166,12 +166,21 @@ def add_tag_to_KB():
                 continue
             # 2. `extract_keywords` 함수를 사용하여 `ad_description`에서 키워드 추출
             tags = extract_keywords(ad_description)
-            
             # 3. 'dataAnalyze_tag 테이블에 태그 추가 
             tag_ids = []
             for tag in tags:
-                cursor.execute('INSERT INTO dataAnalyze_tag (tagName) VALUES (?)', (tag,))
-                tag_id = cursor.lastrowid
+                # 중복된 tag가 있는지 확인
+                cursor.execute('SELECT id FROM dataAnalyze_tag WHERE tagName = ?', (tag,))
+                result = cursor.fetchone()
+                
+                if result:
+                    # 중복된 tag가 있으면 해당 tag_id를 가져옴
+                    tag_id = result[0]
+                else:
+                    # 중복된 tag가 없으면 새로운 tag를 삽입하고 tag_id를 가져옴
+                    cursor.execute('INSERT INTO dataAnalyze_tag (tagName) VALUES (?)', (tag,))
+                    tag_id = cursor.lastrowid
+                
                 tag_ids.append(tag_id)
             
             # 4. `dataAnalyze_productTag` 테이블에 `id` 및 `tag` 추가
@@ -182,7 +191,7 @@ def add_tag_to_KB():
     
     except Exception as e:
         conn.rollback()
-        print(f"Transaction failed: {e}")
+        print(f"Transaction failed`: {e}")
     finally:
         conn.close()
     
