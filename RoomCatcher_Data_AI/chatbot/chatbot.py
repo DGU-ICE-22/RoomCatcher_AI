@@ -69,5 +69,5 @@ if __name__=="__main__":
     chatbot.add_user_message("안녕하세요")
     response = chatbot.send_request()
     chatbot.add_response(response)
-    pprint(chatbot.context)
+    pprint(chatbot.context[2]['content'])
  
