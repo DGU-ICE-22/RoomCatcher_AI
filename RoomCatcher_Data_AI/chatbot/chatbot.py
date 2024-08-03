@@ -1,5 +1,5 @@
-from common import client, model, makeup_response
-from characters import system_role, instruction
+from .common import client, model, makeup_response
+from .characters import system_role, instruction
 from pprint import pprint
 import math
 
