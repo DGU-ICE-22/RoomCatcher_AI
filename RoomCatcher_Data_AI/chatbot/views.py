@@ -31,7 +31,7 @@ def chat_api(request):
                 response_message = chatbot.get_response_content()
                 chatbot.handle_token_limit(response)
                 chatbot.clean_context()
-                # print("response_message: ", response_message)
+                print(chatbot.context[1:])
                 return JsonResponse({"response_message": response_message})
             else:
                 return JsonResponse(serializer.errors, status=400)
