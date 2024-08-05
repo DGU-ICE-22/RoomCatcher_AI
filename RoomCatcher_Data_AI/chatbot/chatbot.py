@@ -8,9 +8,27 @@ class Chatbot:
     def __init__(self, model, system_role, instruction):
         self.context = [{"role":"system","content":system_role}]
         self.model = model
+        self.system_role = system_role
         self.instruction = instruction
         self.max_token_size = 16 * 1024
         self.available_token_rate = 0.9
+        
+    def to_dict(self):
+        return {
+            "model": self.model,
+            "system_role": self.system_role,
+            "instruction": self.instruction,
+            "context": self.context
+        }
+        
+    def get_context(self):
+        return self.context  # context를 반환
+    
+    @classmethod
+    def from_dict(cls, data):
+        chatbot = cls(data["model"], data["system_role"], data["instruction"])
+        chatbot.context = data["context"]
+        return chatbot
     
     def handle_token_limit(self, response):
         try:
@@ -54,6 +72,9 @@ class Chatbot:
             "role": response['choices'][0]['message']["role"],
             "content":response['choices'][0]['message']["content"]
         })
+    
+    def reset_context(self):
+        self.context = [{"role":"system","content":system_role}]
     
     def get_response_content(self):
         return self.context[-1]["content"]
