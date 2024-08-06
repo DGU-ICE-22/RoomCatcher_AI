@@ -16,6 +16,7 @@ chatbot = Chatbot(
 )
 
 # Create your views here.
+# 유저의 응답을 받아 사용자 유형과 텍스트 유사도를 계산하는 로직 구현 필요 
 @csrf_exempt
 def chat_api(request):
     if request.method == 'POST':
