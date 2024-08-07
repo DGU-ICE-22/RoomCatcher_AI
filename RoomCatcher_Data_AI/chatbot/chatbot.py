@@ -80,9 +80,11 @@ class Chatbot:
         return self.context[-1]["content"]
     
     def clean_context(self):
+        # instruction을 포함한 사용자의 메시지에서 instruction을 제거
         for idx in reversed(range(len(self.context))):
             if self.context[idx]["role"] == "user":
-                self.context[idx]["content"] = self.context[idx]["content"].split("instruction")[0].strip()
+                if self.instruction in self.context[idx]["content"]:
+                    self.context[idx]["content"] = self.context[idx]["content"].replace(self.instruction, "").strip()
                 break
         
 if __name__=="__main__":

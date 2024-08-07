@@ -17,37 +17,58 @@ class ChatApiView(APIView):
             data = JSONParser().parse(request)  
             serializer = ChatRequestSerializer(data=data)
             if serializer.is_valid():
-                result = serializer.save()
-                response_message = result['response_message']
-                chatbot_data = result['chatbot']
-                
+                validated_data = serializer.validated_data
                 auth_info = request.META.get('HTTP_AUTHORIZATION', None)
                 if not auth_info:
                     return JsonResponse({'error': 'Auth information is missing'}, status=400)
                 
                 session_key = f'chatbot_{auth_info}'
-                
-                if chatbot_data is None:
-                    if session_key in request.session:
-                        chatbot = Chatbot.from_dict(request.session[session_key])
-                        context = chatbot.get_context()
-                        print("check")
-                        # 다른 API로 context값을 전송하여 사용자의 성향을 받아옴. 
-                        api_url = "http://"
-                        response = requests.get(api_url, json=context)
-                        if response.status_code != 200:
-                            return JsonResponse({'error': 'Failed to get user type'}, status=500)
-                        del request.session[session_key]
+                user_name = validated_data.get('user_name', '사용자')
+
+                if session_key in request.session:
+                    chatbot = Chatbot.from_dict(request.session[session_key])
+                    request_message = validated_data.get('request_message')
+
                 else:
-                    chatbot = Chatbot.from_dict(chatbot_data)
-                    
-                if 'request_message' in result:
-                    chatbot.add_user_message(result['request_message'])
-                    response = chatbot.send_request()
-                    chatbot.add_response(response)
-                    response_message = chatbot.get_response_content()
+                    chatbot = Chatbot(
+                        model=model.basic,
+                        system_role=system_role,
+                        instruction=instruction
+                    )
+                    request_message = "안녕!"
+                    first_message = {
+                        "choices": [{
+                            "message": {
+                                "role": "assistant",
+                                "content": f"{user_name}님, 만나서 반가워요! 제가 {user_name}님께 맞는 유형의 집을 찾아드리고 싶어요☺️"
+                            }
+                        }]
+                    }
+                    second_message = {
+                        "choices": [{
+                            "message": {
+                                "role": "assistant",
+                                "content": f"저와 자연스레 대화하다보면 {user_name}님에게 딱 맞는 집을 찾으실 수 있으실거에요!"
+                            }
+                        }]
+                    }
+                    chatbot.add_response(first_message)
+                    chatbot.add_response(second_message)
                 
-                request.session[session_key] = chatbot.to_dict()
+                
+                chatbot.add_user_message(request_message)
+                response = chatbot.send_request()
+                chatbot.add_response(response)
+                response_message = chatbot.get_response_content()
+                
+                chatbot.handle_token_limit(response)
+                chatbot.clean_context()
+                
+                                # 대화를 종료하는 특정 텍스트가 포함된 경우 세션에서 챗봇 인스턴스를 제거
+                if "사용자님의 부동산 소비 유형을 알려드리기 위해 분석 중이에요!" in response_message:
+                    del request.session[session_key]
+                else:
+                    request.session[session_key] = chatbot.to_dict()
                 
                 return JsonResponse({"response_message": response_message,
                                      "chatbot": chatbot.to_dict()})
