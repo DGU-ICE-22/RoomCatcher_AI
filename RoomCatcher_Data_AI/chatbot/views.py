@@ -64,8 +64,9 @@ class ChatApiView(APIView):
                 chatbot.handle_token_limit(response)
                 chatbot.clean_context()
                 
-                                # 대화를 종료하는 특정 텍스트가 포함된 경우 세션에서 챗봇 인스턴스를 제거
+                # 대화를 종료하는 특정 텍스트가 포함된 경우 세션에서 챗봇 인스턴스를 제거
                 if "사용자님의 부동산 소비 유형을 알려드리기 위해 분석 중이에요!" in response_message:
+                    # 이 시점에서 인스턴스(chatbot)에 남아있는 context 전부 긁어서 다른 API로 넘김. 
                     del request.session[session_key]
                 else:
                     request.session[session_key] = chatbot.to_dict()
