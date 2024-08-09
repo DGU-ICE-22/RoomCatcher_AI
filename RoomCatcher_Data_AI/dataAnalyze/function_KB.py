@@ -401,6 +401,11 @@ def get_listing_serial_number():        # productKB에서 매물일련번호 리
     
     return listing_serial_numbers
 
+def assign_tag(listing_serial_number):        # 매물일련번호를 받아서 태그를 부여
+    # 데이터베이스 연결 후 데이터의 정보를 기반으로 태그를 생성함.
+    # 일정한 태그를 유지할 수 있음. 
+    return listing_serial_number    # 임시로 listing_serial_number를 반환하도록 함.
+
 def add_tag_to_KB(table_name='dataAnalyze_ProductKB_detail'):        # productKB에 태그 추가
     conn = sqlite3.connect('room_lists.db')
     cursor = conn.cursor()
@@ -473,10 +478,13 @@ def add_tag_to_KB(table_name='dataAnalyze_ProductKB_detail'):        # productKB
             for product_id, listing_serial_number, ad_description, property_description in product_ads:
                 if not ad_description and not property_description:
                     continue
+                
+                # 2. assign_tag 함수를 사용하여 키워드 추출
+                tags_1 = assign_tag(listing_serial_number)
+                tags_2 = set(extract_keywords(ad_description) + extract_keywords(property_description))
 
-                # 2. extract_keywords 함수를 사용하여 키워드 추출
-                tags = set(extract_keywords(ad_description) + extract_keywords(property_description))
-                print(tags)     # 이 시점에서 tag들을 깔끔하게 처리하는 과정이 필요함. 
+                print("DB기반 결과\n", tags_1, "extract 결과\n", tags_2)     # 이 시점에서 tag들을 깔끔하게 처리하는 과정이 필요함. 
+                
                 # 3. 추출한 키워드를 dataAnalyze_tag_detail 테이블에 추가하고 tag_id를 가져옴
                 tag_ids = []
                 for tag in tags:
