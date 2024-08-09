@@ -2,7 +2,7 @@ import requests
 import os 
 import json
 from django.core.exceptions import ImproperlyConfigured
-from .product_crawling import product_crawling
+from product_crawling import product_crawling
 import sqlite3
 
 # 주소 변환 함수 
