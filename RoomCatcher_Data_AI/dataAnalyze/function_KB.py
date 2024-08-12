@@ -1,4 +1,3 @@
-import re
 import traceback
 import os 
 import json
@@ -10,6 +9,8 @@ from transpose_location_to_address_dabang import get_address_from_coordinates
 from extract_tag_from_product import extract_keywords
 import sqlite3
 from datetime import datetime
+import concurrent.futures  # 멀티스레딩을 위한 라이브러리
+import multiprocessing
 
 def get_secret(setting, secrets):
     try:
@@ -20,6 +21,11 @@ def get_secret(setting, secrets):
         raise ImproperlyConfigured(error_msg)
 
 def connect_db():
+    conn = sqlite3.connect('room_lists.db')
+    conn.execute('PRAGMA busy_timeout = 30000')  # 30초 동안 대기
+    return conn
+
+def return_room_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
 
@@ -43,9 +49,7 @@ def create_address(item):
     address = get_address_from_coordinates(y, x, API_KEY)
     return address
 
-def process_and_save_data(room_data):
-    conn = sqlite3.connect('room_lists.db')
-    cursor = conn.cursor()
+def process_and_save_data(room_data, conn, cursor):
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS dataAnalyze_ProductKB (
@@ -151,16 +155,12 @@ def process_and_save_data(room_data):
 
         conn.commit()
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         print(f"Transaction failed: {e}")
         traceback.print_exc()
-    finally:
-        conn.close()
-        
-def detail_and_save_data(room_data, listing_serial_number):
-    
-    conn = sqlite3.connect('room_lists.db')
-    cursor = conn.cursor()
+
+def detail_and_save_data(room_data, listing_serial_number, conn, cursor):
     
     # Create table with additional columns for management cost and options
     cursor.execute('''
@@ -381,19 +381,15 @@ def detail_and_save_data(room_data, listing_serial_number):
         ))
         conn.commit()
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         print(f"Transaction failed: {e}")
         traceback.print_exc()
         fail_list.append(listing_serial_number)
-        
-    finally:
-        conn.close()
+ 
     
-def get_listing_serial_number():        # productKB에서 매물일련번호 리스트 가져오기
-    # 데이터베이스 연결
-    conn = sqlite3.connect('room_lists.db')
-    cursor = conn.cursor()
-    
+def get_listing_serial_number(conn, cursor):        # productKB에서 매물일련번호 리스트 가져오기
+
     # 데이터베이스에서 listing_serial_number 열의 모든 데이터를 가져옴
     cursor.execute('SELECT listing_serial_number FROM dataAnalyze_productKB')
     result = cursor.fetchall()
@@ -406,12 +402,10 @@ def get_listing_serial_number():        # productKB에서 매물일련번호 리
     
     return listing_serial_numbers
 
-def assign_tag(listing_serial_number):        # 매물일련번호를 받아서 태그를 부여
+def assign_tag(listing_serial_number, conn, cursor):        # 매물일련번호를 받아서 태그를 부여
     # 데이터베이스 연결 후 데이터의 정보를 기반으로 태그를 생성함.
     # 일정한 태그를 유지할 수 있음. 
-    # 데이터베이스 연결
-    conn = sqlite3.connect('room_lists.db')
-    cursor = conn.cursor()
+
     try: 
         # dataAnalyze_ProductKB_detail 테이블에서 필요한 열 가져오기
         cursor.execute('''
@@ -542,10 +536,10 @@ def assign_tag(listing_serial_number):        # 매물일련번호를 받아서 
             return tags
 
     except Exception as e:
+        if conn:
+            conn.rollback()
         print(f"Error: {e}")
         traceback.print_exc()
-    finally:
-        conn.close()
         
 def clear_keywords(tags, secrets):
     api_key = get_secret('OPENAI_API_KEY', secrets)
@@ -616,57 +610,80 @@ def clear_keywords(tags, secrets):
     
     return response['choices'][0]['message']['content']
 
+def process_single_ad(product_ad, secrets):
+    try:
+        product_id, listing_serial_number,  ad_description = product_ad
+        if not ad_description:
+            return
+
+        conn = connect_db()
+        cursor = conn.cursor()
+# 2. assign_tag 함수를 사용하여 키워드 추출
+
+        tags_1 = assign_tag(listing_serial_number, conn, cursor)
+        try:                    
+            if ad_description == None:
+                tags = tags_1
+            tags_2 = clear_keywords(ad_description, secrets)
+            
+            if tags_2 == "없음" or tags_2 == "아무 답변도 내놓지 않습니다.":
+                tags = tags_1
+            else:
+                # 문자열을 리스트로 변환
+                tags_2_list = tags_2.split(', ')
+                # 중복을 제거하고 합치기
+                tags = list(set(tags_1).union(tags_2_list))
+                print(tags)
+                
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+            tags = tags_1        
+
+        # 3. 'dataAnalyze_tag 테이블에 태그 추가 
+        tag_ids = []
+        for tag in tags:
+            # 중복된 tag가 있는지 확인
+            cursor.execute('SELECT id FROM dataAnalyze_tag_detail WHERE tagName = ?', (tag,))
+            result = cursor.fetchone()  
+            if result:
+                # 중복된 tag가 있으면 해당 tag_id를 가져옴
+                tag_id = result[0]
+            else:
+                # 중복된 tag가 없으면 새로운 tag를 삽입하고 tag_id를 가져옴
+                cursor.execute('INSERT INTO dataAnalyze_tag_detail (tagName) VALUES (?)', (tag,))
+                tag_id = cursor.lastrowid
+
+            tag_ids.append(tag_id)
+
+        # 4. `dataAnalyze_productTag` 테이블에 `id` 및 `tag` 추가
+        for tag_id in tag_ids:
+            cursor.execute('INSERT INTO dataAnalyze_productTag_detail (product_detail_id, tagId_id) VALUES (?, ?)', (product_id, tag_id))
+
+        conn.commit()
+    except Exception as e:
+        print(f"Transaction failed: {e}")
+        traceback.print_exc()
+    finally:
+        if conn:
+            conn.close()
+
 def add_tag_to_KB(table_name, secrets):        # productKB에 태그 추가
-    conn = sqlite3.connect('room_lists.db')
+    conn = connect_db()
     cursor = conn.cursor()
+    
     if table_name == 'dataAnalyze_ProductKB':
         # 1. `dataAnalyze_productKB` 테이블에서 `ad_description` 항목과 `id` 값을 가져오기
         cursor.execute('SELECT id, ad_description FROM {}'.format(table_name))
         product_ads = cursor.fetchall()
-        
-        try:
-            for product_id, ad_description in product_ads:
-                if not ad_description:
-                    continue
-                # 2. `extract_keywords` 함수를 사용하여 `ad_description`에서 키워드 추출
-                tags = extract_keywords(ad_description)
-                # 3. 'dataAnalyze_tag 테이블에 태그 추가 
-                tag_ids = []
-                for tag in tags:
-                    # 중복된 tag가 있는지 확인
-                    cursor.execute('SELECT id FROM dataAnalyze_tag WHERE tagName = ?', (tag,))
-                    result = cursor.fetchone()
-                    
-                    if result:
-                        # 중복된 tag가 있으면 해당 tag_id를 가져옴
-                        tag_id = result[0]
-                    else:
-                        # 중복된 tag가 없으면 새로운 tag를 삽입하고 tag_id를 가져옴
-                        cursor.execute('INSERT INTO dataAnalyze_tag (tagName) VALUES (?)', (tag,))
-                        tag_id = cursor.lastrowid
-                    
-                    tag_ids.append(tag_id)
-                
-                # 4. `dataAnalyze_productTag` 테이블에 `id` 및 `tag` 추가
-                for tag_id in tag_ids:
-                    cursor.execute('INSERT INTO dataAnalyze_productTag (productId_id, tagId_id) VALUES (?, ?)', (product_id, tag_id))
-                
-            conn.commit()
-        
-        except Exception as e:
-            conn.rollback()
-            print(f"Transaction failed`: {e}")
-            traceback.print_exc()
-        finally:
-            conn.close()
+        with multiprocessing.Pool() as pool:
+            pool.starmap(process_single_ad, [(product_ad, secrets) for product_ad in product_ads])
             
     elif table_name == 'dataAnalyze_ProductKB_detail':
-        conn = sqlite3.connect('room_lists.db')
-        cursor = conn.cursor()
 
         # 1. dataAnalyze_ProductKB_detail 테이블에서 id, 매물일련번호, 특징광고내용, 물건특징내용 항목을 가져옴
         cursor.execute('''
-            SELECT id, 매물일련번호, 특징광고내용, 물건특징내용
+            SELECT id, 매물일련번호, 특징광고내용
             FROM {}
         '''.format(table_name))
         product_ads = cursor.fetchall()
@@ -691,73 +708,11 @@ def add_tag_to_KB(table_name, secrets):        # productKB에 태그 추가
         )
         ''')
 
-        try:
-            for product_id, listing_serial_number, ad_description, property_description in product_ads:
-                #     continue
-                
-                # 2. assign_tag 함수를 사용하여 키워드 추출
-                tags_1 = assign_tag(listing_serial_number)
-                try:                    
-                    if ad_description == None or property_description == None:
-                        tags = tags_1
-                        
-                    text = ad_description + " " + property_description
-                    tags_2 = clear_keywords(text, secrets)
-                    
-                    if tags_2 == "없음" or tags_2 == "아무 답변도 내놓지 않습니다.":
-                        tags = tags_1
-                    else:
-                        # 문자열을 리스트로 변환
-                        tags_2_list = tags_2.split(', ')
-                        # 중복을 제거하고 합치기
-                        tags = list(set(tags_1).union(tags_2_list))
-                        # print(tags)
-                        
-                except Exception as e:
-                    print(f"Error: {e}")
-                    traceback.print_exc()
-                    tags = tags_1
-                    
-                # 3. 추출한 키워드를 dataAnalyze_tag_detail 테이블에 추가하고 tag_id를 가져옴
-                tag_ids = []
-                for tag in tags:
-                    cursor.execute('SELECT id FROM dataAnalyze_tag_detail WHERE tagName = ?', (tag,))
-                    result = cursor.fetchone()
+        with multiprocessing.Pool() as pool:
+            pool.starmap(process_single_ad, [(product_ad, secrets) for product_ad in product_ads])
 
-                    if result:
-                        tag_id = result[0]
-                    else:
-                        cursor.execute('INSERT INTO dataAnalyze_tag_detail (tagName) VALUES (?)', (tag,))
-                        tag_id = cursor.lastrowid
-
-                    tag_ids.append(tag_id)
-
-                # 5. productTag_detail 테이블에 데이터 삽입
-                for tag_id in tag_ids:
-                    cursor.execute('''
-                        INSERT INTO dataAnalyze_productTag_detail (product_detail_id, listing_serial_number, tagId_id, product_id)
-                        VALUES (?, ?, ?, ?)
-                    ''', (product_id, listing_serial_number, tag_id, None))
-
-                # 6. ProductKB 테이블에서 매물일련번호를 가진 데이터의 id를 가져와서 product_id로 삽입
-                cursor.execute('SELECT id FROM dataAnalyze_ProductKB WHERE listing_serial_number = ?', (listing_serial_number,))
-                result = cursor.fetchone()
-                if result:
-                    product_id_main = result[0]
-                    cursor.execute('''
-                        UPDATE dataAnalyze_productTag_detail 
-                        SET product_id = ?
-                        WHERE listing_serial_number = ? AND product_detail_id = ?
-                    ''', (product_id_main, listing_serial_number, product_id))
-
-            conn.commit()
-
-        except Exception as e:
-            conn.rollback()
-            print(f"Transaction failed: {e}")
-            traceback.print_exc()
-        finally:
-            conn.close()
+            
+    conn.close()
     
 def main_cluster_ver():        # 매물 데이터 클러스터 단위로 크롤링 및 저장
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -765,9 +720,13 @@ def main_cluster_ver():        # 매물 데이터 클러스터 단위로 크롤�
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
-    room_data = connect_db()
-    process_and_save_data(room_data)
-    add_tag_to_KB("dataAnalyze_productkb", secrets)    
+        
+    conn = connect_db()
+    cursor = conn.cursor()    
+    room_data = return_room_data()
+    process_and_save_data(room_data, conn, cursor)
+    add_tag_to_KB("dataAnalyze_productkb", secrets, conn, cursor)    
+    conn.close()
 
 def main_detail_ver():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -775,10 +734,14 @@ def main_detail_ver():
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
-    # listing_serial_number_lists = get_listing_serial_number()         #productKB에서 모든 매물일련번호 리스트 가져오기 
+        
+    # conn = connect_db()
+    # cursor = conn.cursor()
+    # listing_serial_number_lists = get_listing_serial_number(conn, cursor)         #productKB에서 모든 매물일련번호 리스트 가져오기 
     # for serial_number in listing_serial_number_lists:
     #     detail_info = product_crawling_detail(serial_number, secrets)  # 매물 상세 정보 가져오기
-    #     detail_and_save_data(detail_info, serial_number)     # 가져온 상세 정보로 데이터베이스에 저장
+    #     detail_and_save_data(detail_info, serial_number, conn, cursor)     # 가져온 상세 정보로 데이터베이스에 저장
+    
     add_tag_to_KB("dataAnalyze_ProductKB_detail", secrets)        # 상세 정보에 태그 추가
     
 if __name__ == "__main__":
