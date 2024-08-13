@@ -1,8 +1,10 @@
+import time
 import traceback
 import os 
 import json
 from django.core.exceptions import ImproperlyConfigured
 from openai import OpenAI
+import openai
 from product_crawling_v2 import product_crawling_v2
 from product_crawling_detail import product_crawling_detail
 from transpose_location_to_address_dabang import get_address_from_coordinates
@@ -595,22 +597,40 @@ def clear_keywords(tags, secrets):
         ]
     }
     message.append(tag_list)
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=message,
-        temperature=0.10,
-        max_tokens=713,
-        top_p=1,
-        frequency_penalty=2,
-        presence_penalty=0,
-        response_format={
-            "type": "text"
-        }
-    ).model_dump()
-    
-    return response['choices'][0]['message']['content']
-
+    retry_count = 0
+    max_retries = 5
+    response = None
+    while retry_count < max_retries:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=message,
+                temperature=0.10,
+                max_tokens=713,
+                top_p=1,
+                frequency_penalty=2,
+                presence_penalty=0,
+                response_format={
+                    "type": "text"
+                }
+            ).model_dump()
+            break
+        except openai.RateLimitError as e:
+            retry_count += 1
+            if retry_count >= max_retries:
+                print(f"Max retries reached for product_ad {tags}")
+                break
+            print(f"Rate limit exceeded. Retrying after 1 seconds...")
+            time.sleep(1)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            break
+    if response:
+        return response['choices'][0]['message']['content']
+    else:
+        return "없음"
 def process_single_ad(product_ad, secrets):
+
     try:
         product_id, listing_serial_number,  ad_description = product_ad
         if not ad_description:
@@ -685,6 +705,7 @@ def add_tag_to_KB(table_name, secrets):        # productKB에 태그 추가
         cursor.execute('''
             SELECT id, 매물일련번호, 특징광고내용
             FROM {}
+            WHERE 수정일시 > '2024-07-23T23:59:59'
         '''.format(table_name))
         product_ads = cursor.fetchall()
 
@@ -708,7 +729,7 @@ def add_tag_to_KB(table_name, secrets):        # productKB에 태그 추가
         )
         ''')
 
-        with multiprocessing.Pool() as pool:
+        with multiprocessing.Pool(processes=5) as pool:
             pool.starmap(process_single_ad, [(product_ad, secrets) for product_ad in product_ads])
 
             
