@@ -1,3 +1,4 @@
+import random
 import time
 import traceback
 import os 
@@ -598,7 +599,7 @@ def clear_keywords(tags, secrets):
     }
     message.append(tag_list)
     retry_count = 0
-    max_retries = 5
+    max_retries = 2
     response = None
     while retry_count < max_retries:
         try:
@@ -629,17 +630,16 @@ def clear_keywords(tags, secrets):
         return response['choices'][0]['message']['content']
     else:
         return "없음"
+
+import concurrent.futures
+
 def process_single_ad(product_ad, secrets):
-
+    conn = None
     try:
-        product_id, listing_serial_number,  ad_description = product_ad
-        if not ad_description:
-            return
-
         conn = connect_db()
         cursor = conn.cursor()
-# 2. assign_tag 함수를 사용하여 키워드 추출
-
+        # 2. assign_tag 함수를 사용하여 키워드 추출
+        product_id, listing_serial_number, ad_description = product_ad
         tags_1 = assign_tag(listing_serial_number, conn, cursor)
         try:                    
             if ad_description == None:
@@ -688,52 +688,68 @@ def process_single_ad(product_ad, secrets):
         if conn:
             conn.close()
 
-def add_tag_to_KB(table_name, secrets):        # productKB에 태그 추가
-    conn = connect_db()
-    cursor = conn.cursor()
-    
-    if table_name == 'dataAnalyze_ProductKB':
-        # 1. `dataAnalyze_productKB` 테이블에서 `ad_description` 항목과 `id` 값을 가져오기
-        cursor.execute('SELECT id, ad_description FROM {}'.format(table_name))
-        product_ads = cursor.fetchall()
-        with multiprocessing.Pool() as pool:
-            pool.starmap(process_single_ad, [(product_ad, secrets) for product_ad in product_ads])
-            
-    elif table_name == 'dataAnalyze_ProductKB_detail':
+def add_tag_to_KB(table_name, secrets):
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
 
-        # 1. dataAnalyze_ProductKB_detail 테이블에서 id, 매물일련번호, 특징광고내용, 물건특징내용 항목을 가져옴
-        cursor.execute('''
-            SELECT id, 매물일련번호, 특징광고내용
-            FROM {}
-            WHERE 수정일시 > '2024-07-23T23:59:59'
-        '''.format(table_name))
-        product_ads = cursor.fetchall()
+        if table_name == 'dataAnalyze_ProductKB':
+            cursor.execute('SELECT id, ad_description FROM {}'.format(table_name))
+            product_ads = cursor.fetchall()
 
-        # 4. dataAnalyze_productTag_detail 테이블이 존재하지 않는다면 생성
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS dataAnalyze_productTag_detail (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                product_detail_id INTEGER,
-                listing_serial_number INTEGER,
-                tagId_id INTEGER,
-                product_id INTEGER,
-                FOREIGN KEY(product_detail_id) REFERENCES dataAnalyze_ProductKB_detail(id),
-                FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag(id),
-                FOREIGN KEY(product_id) REFERENCES dataAnalyze_ProductKB(id)
+            # ThreadPoolExecutor 사용
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(process_single_ad, product_ad, secrets) for product_ad in product_ads]
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        print(f'Generated an exception: {exc}')
+
+        elif table_name == 'dataAnalyze_ProductKB_detail':
+            cursor.execute('''
+                SELECT id, 매물일련번호, 특징광고내용
+                FROM {}
+                WHERE id < 1000
+            '''.format(table_name))
+            product_ads = cursor.fetchall()
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS dataAnalyze_productTag_detail (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_detail_id INTEGER,
+                    listing_serial_number INTEGER,
+                    tagId_id INTEGER,
+                    product_id INTEGER,
+                    FOREIGN KEY(product_detail_id) REFERENCES dataAnalyze_ProductKB_detail(id),
+                    FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag(id),
+                    FOREIGN KEY(product_id) REFERENCES dataAnalyze_ProductKB(id)
+                )
+            ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS dataAnalyze_tag_detail (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tagName TEXT
             )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS dataAnalyze_tag_detail (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tagName TEXT
-        )
-        ''')
+            ''')
 
-        with multiprocessing.Pool(processes=5) as pool:
-            pool.starmap(process_single_ad, [(product_ad, secrets) for product_ad in product_ads])
+            # ThreadPoolExecutor 사용
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                futures = [executor.submit(process_single_ad, product_ad, secrets) for product_ad in product_ads]
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        print(f'Generated an exception: {exc}')
 
-            
-    conn.close()
+    except Exception as e:
+        print(f"An error occurred in add_tag_to_KB: {e}")
+        traceback.print_exc()
+
+    finally:
+        if conn:
+            conn.close()
     
 def main_cluster_ver():        # 매물 데이터 클러스터 단위로 크롤링 및 저장
     base_dir = os.path.dirname(os.path.abspath(__file__))
