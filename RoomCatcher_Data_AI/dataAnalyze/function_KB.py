@@ -620,11 +620,11 @@ def clear_keywords(tags, secrets):
             retry_count += 1
             if retry_count >= max_retries:
                 print(f"Max retries reached for product_ad {tags}")
+                response = None
                 break
-            print(f"Rate limit exceeded. Retrying after 1 seconds...")
-            time.sleep(1)
         except Exception as e:
             print(f"An error occurred: {e}")
+            response = None
             break
     if response:
         return response['choices'][0]['message']['content']
