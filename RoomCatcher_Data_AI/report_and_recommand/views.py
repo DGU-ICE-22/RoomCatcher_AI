@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .calculate_similarity_userType_and_tag import find_best_match
 from .type_explain import type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student
+from .convert_to_plaintext import convert_to_plaintext
 
 # - response[’chatbot’][context’][’role’] == “user” 인 응답들을 평문으로 바꿈.
 # - 평문으로 바꾼 문장과 사용자 유형 문장들을 유사도 분석하여 가장 유사도가 높은 유형을 보여준다.
@@ -21,11 +22,14 @@ class ReportView(APIView):
         try:
             content = request.GET.getlist('content')
             #content 리스트를 평문으로 바꾸기 
-            print(content)
-            # content = content[0]
+            clear_content = convert_to_plaintext(content)
+            print(clear_content)
+            if clear_content == None:
+                return JsonResponse({'error': 'Failed to convert to plaintext'}, status=500)
+            # clear_content = content[0]
             user_type_list = [type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student]
 
-            best_match_index, similarity_score = find_best_match(content, user_type_list)            
+            best_match_index, similarity_score = find_best_match(clear_content, user_type_list)            
             
             return JsonResponse({'userType': user_type_list[best_match_index],
                                  'similarity_score' : similarity_score}, status=200)

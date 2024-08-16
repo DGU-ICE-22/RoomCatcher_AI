@@ -76,16 +76,19 @@ class ChatApiView(APIView):
                     
                     # 이걸 다른 API로 넘겨서 사용자 유형을 분석하고, 그 결과를 다시 챗봇에 넣어서 보여줄 지 아니면 다른 방식으로 보여줄 지 결정해야 함.
                     params = {'content': content}
+                    print(params)
                     # Report 앱의 CBV에 GET 요청 보내기
                     report_url = reverse('report_view')
                     report_response = requests.get(request.build_absolute_uri(report_url), params=params)
-                    
+                    print(report_response.status_code)
                     if report_response.status_code == 200:
                         report_data = report_response.json()
                         del request.session[session_key]
 
                         # report_data를 사용하여 추가 로직을 구현할 수 있습니다.
-                        
+                    else :
+                        report_data = None
+                        print(report_response.json())
                     return JsonResponse({"response_message": response_message,
                                         "chatbot": chatbot.to_dict(),
                                         "report_data": report_data
