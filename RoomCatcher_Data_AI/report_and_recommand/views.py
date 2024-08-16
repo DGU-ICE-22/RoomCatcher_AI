@@ -21,16 +21,26 @@ class ReportView(APIView):
     def get(self, request, *args, **kwargs):
         try:
             content = request.GET.getlist('content')
+            user_tags = []
+
             #content 리스트를 평문으로 바꾸기 
-            clear_content = convert_to_plaintext(content)
+            clear_content = convert_to_plaintext(content)['choices'][0]['message']['content']
+            
+            #1. clear_content를 이용해서 DB에 있는 키워드와 유사도 분석 후 가장 유사한 키워드들 n개 가져오기 
+            
+            #2. 사용자 유형에 할당된 태그들과 비교하여 가장 유사한 사용자 유형을 찾아 점수를 매기기 
+            #나중에 find_best_match 함수에 이 값을 전달하여 최종 점수를 산출.
+            
             if clear_content == None:
                 return JsonResponse({'error': 'Failed to convert to plaintext'}, status=500)
             # clear_content = content[0]
             user_type_list = [type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student]
 
-            best_match_index, similarity_score = find_best_match(clear_content['choices'][0]['message']['content'], user_type_list)            
+            best_match_index, similarity_score = find_best_match(clear_content, user_type_list)            
             
+            #3. 도출된 사용자 유형에 해당하는 태그들 중 1번에서 가져왔던 태그들과 중복되는 태그들을 response로 보내줌. 
             return JsonResponse({'userType': user_type_list[best_match_index],
-                                 'similarity_score' : similarity_score}, status=200)
+                                 'similarity_score' : similarity_score, 
+                                 'user_tags': user_tags}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

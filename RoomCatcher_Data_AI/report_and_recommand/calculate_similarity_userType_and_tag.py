@@ -8,10 +8,14 @@ import json
 import os
 import traceback
 import openai
+from transformers import ElectraModel, ElectraTokenizer
+import torch, numpy as np 
 from sklearn.metrics.pairwise import cosine_similarity
 from django.core.exceptions import ImproperlyConfigured
 import numpy as np
-
+# KoELECTRA 모델과 토크나이저 로드
+tokenizer = ElectraTokenizer.from_pretrained("monologg/koelectra-base-v3-discriminator")
+model = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
 def get_secret(setting, secrets):
     try:
         return secrets[setting]
@@ -19,6 +23,14 @@ def get_secret(setting, secrets):
         error_msg = "Set the {} environment variable".format(setting)
         traceback.print_exc()
         raise ImproperlyConfigured(error_msg)
+
+# 텍스트 임베딩 생성 함수
+def get_embedding(text):
+    inputs = tokenizer(text, return_tensors='pt', truncation=True, padding=True)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    embeddings = outputs.last_hidden_state[:, 0, :]
+    return embeddings.squeeze().numpy()
 
 # 유저 입력에 대한 임베딩 생성 함수
 def get_user_input_embedding(user_input, client):
@@ -31,6 +43,7 @@ def get_user_input_embedding(user_input, client):
     
 # 유저 입력을 받아와서 가장 유사한 유형을 찾는 함수
 def find_best_match(user_input, user_type_list):
+    #OpenAI API를 사용한 유사도 계산
     try:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
@@ -61,6 +74,22 @@ def find_best_match(user_input, user_type_list):
         print(e)
         traceback.print_exc()
         return None, None
+    
+    # # KoELECTRA를 사용한 유사도 계산
+    # try:
+    #     characteristic_embeddings = [get_embedding(user_type) for user_type in user_type_list]
+    #     user_embedding = get_embedding(user_input)
+        
+    #     similarities = cosine_similarity(user_embedding.reshape(1, -1), characteristic_embeddings).flatten()
+    #     best_match_index = np.argmax(similarities)
+    #     print(similarities)
+    #     return best_match_index, float(similarities[best_match_index])
+    
+    # except Exception as e:
+    #     print(e)
+    #     traceback.print_exc()
+    #     return None, None
+    
 # from type_explain import type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student
 
 # user_type_list = [type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student]
