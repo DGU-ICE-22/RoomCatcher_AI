@@ -66,21 +66,16 @@ class ChatApiView(APIView):
                 # 대화를 종료하는 특정 텍스트가 포함된 경우 세션에서 챗봇 인스턴스를 제거
                 if "사용자님의 부동산 소비 유형을 알려드리기 위해 분석 중이에요!" in response_message:
                     # 이 시점에서 인스턴스(chatbot)에 남아있는 context 전부 긁어서 다른 API로 넘김. 
-                    context_list = response.get('chatbot', {}).get('context', [])
-                    content = []
-                    
+                    context_list = chatbot.context
                     # 'context' 리스트를 순회하며 'role'이 'user'인 항목을 평문으로 변환
-                    for item in context_list:
-                        if item.get('role') == 'user':
-                            content.append(item.get('content'))
-                    
+                    content = [item['content'] for item in context_list if item['role'] == 'user']
+
                     # 이걸 다른 API로 넘겨서 사용자 유형을 분석하고, 그 결과를 다시 챗봇에 넣어서 보여줄 지 아니면 다른 방식으로 보여줄 지 결정해야 함.
                     params = {'content': content}
                     print(params)
                     # Report 앱의 CBV에 GET 요청 보내기
                     report_url = reverse('report_view')
                     report_response = requests.get(request.build_absolute_uri(report_url), params=params)
-                    print(report_response.status_code)
                     if report_response.status_code == 200:
                         report_data = report_response.json()
                         del request.session[session_key]

@@ -23,13 +23,12 @@ class ReportView(APIView):
             content = request.GET.getlist('content')
             #content 리스트를 평문으로 바꾸기 
             clear_content = convert_to_plaintext(content)
-            print(clear_content)
             if clear_content == None:
                 return JsonResponse({'error': 'Failed to convert to plaintext'}, status=500)
             # clear_content = content[0]
             user_type_list = [type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student]
 
-            best_match_index, similarity_score = find_best_match(clear_content, user_type_list)            
+            best_match_index, similarity_score = find_best_match(clear_content['choices'][0]['message']['content'], user_type_list)            
             
             return JsonResponse({'userType': user_type_list[best_match_index],
                                  'similarity_score' : similarity_score}, status=200)
