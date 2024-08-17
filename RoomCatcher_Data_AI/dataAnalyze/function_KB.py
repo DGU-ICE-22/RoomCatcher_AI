@@ -644,7 +644,8 @@ def process_single_ad(product_ad, secrets):
         try:                    
             if ad_description == None:
                 tags = tags_1
-            tags_2 = clear_keywords(ad_description, secrets)
+            else:
+                tags_2 = clear_keywords(ad_description, secrets)
             
             if tags_2 == "없음" or tags_2 == "아무 답변도 내놓지 않습니다.":
                 tags = tags_1
@@ -676,7 +677,7 @@ def process_single_ad(product_ad, secrets):
 
             tag_ids.append(tag_id)
 
-        # 4. `dataAnalyze_productTag` 테이블에 `id` 및 `tag` 추가
+        # 4. `dataAnalyze_productTag_detail` 테이블에 `id` 및 `tag` 추가
         for tag_id in tag_ids:
             cursor.execute('INSERT INTO dataAnalyze_productTag_detail (product_detail_id, tagId_id) VALUES (?, ?)', (product_id, tag_id))
 
@@ -721,9 +722,9 @@ def add_tag_to_KB(table_name, secrets):
                     listing_serial_number INTEGER,
                     tagId_id INTEGER,
                     product_id INTEGER,
-                    FOREIGN KEY(product_detail_id) REFERENCES dataAnalyze_ProductKB_detail(id),
-                    FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag(id),
-                    FOREIGN KEY(product_id) REFERENCES dataAnalyze_ProductKB(id)
+                    FOREIGN KEY(product_detail_id) REFERENCES dataAnalyze_ProductKB_detail(id) ON DELETE CASCADE,
+                    FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag(id) ON DELETE CASCADE,
+                    FOREIGN KEY(product_id) REFERENCES dataAnalyze_ProductKB(id) ON DELETE CASCADE
                 )
             ''')
 
