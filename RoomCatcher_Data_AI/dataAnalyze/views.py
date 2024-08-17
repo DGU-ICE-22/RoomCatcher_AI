@@ -3,8 +3,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .models import Product, ProductKB
 from .serializers import ProductSerializer, ProductTagSerializer, TagSerializer, ProductKBSerializer
-from .product_crawling import product_crawling
-from .transpose_location_to_address_dabang import transpose_location_to_address
+from .ver1.product_crawling import product_crawling
+from .ver1.transpose_location_to_address_dabang import transpose_location_to_address
+from django.db.models import Q
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -19,8 +20,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         transpose_location_to_address()
         return Response(status=status.HTTP_201_CREATED)
     
-from django.db.models import Q
-
 class ProductFilterView(generics.ListAPIView):
     serializer_class = ProductSerializer
 
