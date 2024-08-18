@@ -47,7 +47,6 @@ def add_tag_to_KB_detail(table_name, secrets):
                 )
             ''')
 
-
             # ThreadPoolExecutor 사용
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 futures = [executor.submit(process_single_ad, product_ad, secrets) for product_ad in product_ads]

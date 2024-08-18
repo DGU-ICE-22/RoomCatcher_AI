@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .calculate_similarity_userType_and_tag import find_best_match
+from .calculate_similarity_userType_and_tag import find_best_match_tags, find_best_match_type, bring_tags_to_user_type, select_best_index
 from .type_explain import type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student
 from .convert_to_plaintext import convert_to_plaintext
 
@@ -20,27 +20,44 @@ from .convert_to_plaintext import convert_to_plaintext
 class ReportView(APIView):
     def get(self, request, *args, **kwargs):
         try:
+            
             content = request.GET.getlist('content')
-            user_tags = []
 
             #content 리스트를 평문으로 바꾸기 
             clear_content = convert_to_plaintext(content)['choices'][0]['message']['content']
             
-            #1. clear_content를 이용해서 DB에 있는 키워드와 유사도 분석 후 가장 유사한 키워드들 n개 가져오기 
-            
-            #2. 사용자 유형에 할당된 태그들과 비교하여 가장 유사한 사용자 유형을 찾아 점수를 매기기 
-            #나중에 find_best_match 함수에 이 값을 전달하여 최종 점수를 산출.
-            
             if clear_content == None:
                 return JsonResponse({'error': 'Failed to convert to plaintext'}, status=500)
-            # clear_content = content[0]
+            
+            #1. clear_content를 이용해서 DB에 있는 키워드와 유사도 분석 후 가장 유사한 키워드들 n개 가져오기 
+            tags = find_best_match_tags(clear_content)
+            
+            #2. 사용자 유형에 할당된 태그들과 비교하여 가장 유사한 사용자 유형을 찾아 점수를 매기기 
             user_type_list = [type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student]
+            
+            dummy_tags = [bring_tags_to_user_type(index) for index in range(len(user_type_list))]
+            
+            indexed_dummy_tags = list(enumerate(dummy_tags))
 
-            best_match_index, similarity_score = find_best_match(clear_content, user_type_list)            
+            sorted_indexed_dummy_tags = sorted(indexed_dummy_tags, key=lambda dt: len(set(dt) & set(tags)), reverse=True)
+            
+            index_list = [index for index, _ in sorted_indexed_dummy_tags]
+            
+            sorted_dummy_tags = [dt for _, dt in sorted_indexed_dummy_tags]
+                        
+            # 사용자의 응답과 사용자 유형설명을 유사도 분석한 결과 유사한 순서대로 반환
+            _ , index_list_v2 = find_best_match_type(clear_content, user_type_list)
+            
+            max_index = select_best_index(index_list_v2, index_list) 
+            
+            correct_type_name, correct_type_explain = user_type_list[max_index].split('\n', 1)        # 사용자의 유형
+            
+            user_tags = [list(set(dt) & set(tags)) for dt in dummy_tags[max_index]] # 사용자의 유형에 해당하는 태그들과 사용자의 응답에서 가져온 태그들의 교집합
             
             #3. 도출된 사용자 유형에 해당하는 태그들 중 1번에서 가져왔던 태그들과 중복되는 태그들을 response로 보내줌. 
-            return JsonResponse({'userType': user_type_list[best_match_index],
-                                 'similarity_score' : similarity_score, 
+            return JsonResponse({'userTypeName':  correct_type_name,
+                                 'userTypeExplain' : correct_type_explain,
                                  'user_tags': user_tags}, status=200)
+            
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
