@@ -94,6 +94,10 @@ def product_crawling(cluster_id, secrets):
 def extract_enable_clusterId(secret, cluster_ids, mode=False, start=0, end=0):
     if mode:
         cluster_ids = range(start, end)
+    elif cluster_ids is None:
+        # mode가 False이고 cluster_ids가 제공되지 않은 경우, cluster_ids.txt에서 읽어옴
+        with open("cluster_ids.txt", "r") as file:
+            cluster_ids = [int(line.strip()) for line in file.readlines()]
     all_data = []
     result_ids = []
     for cluster_id in cluster_ids:
@@ -113,13 +117,13 @@ def extract_enable_clusterId(secret, cluster_ids, mode=False, start=0, end=0):
         
     return all_data
 
-def product_crawling_v2(secret):
+def product_crawling_v2(secret, flag):
     # txt 파일에서 클러스터 ID 리스트를 읽어옴
     with open("cluster_ids.txt", "r") as file:
         num_list = [int(line.strip()) for line in file.readlines()]
         
-    #mode가 True이면 사용 가능한 클러스터 ID를 txt 파일에 저장. 뒤의 숫자들은 범위를 찾고자 하는 id의 범위를 나타냄.
-    data = extract_enable_clusterId(secret, num_list, False, 5102231000, 5102232000)
+    #flag가 True이면 사용 가능한 클러스터 ID를 txt 파일에 저장. 뒤의 숫자들은 범위를 찾고자 하는 id의 범위를 나타냄.
+    data = extract_enable_clusterId(secret, num_list, flag, 5102231000, 5102232000)
     
     return(data)
     

@@ -1,7 +1,13 @@
 import json
-import os
+import os, sys
+import sqlite3
 import traceback
 import pymysql
+
+# 현재 파일의 상위 두 디렉토리 경로를 sys.path에 추가
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 
 from dataAnalyze.common import process_single_ad
 from dataAnalyze.ver2.product_crawling_detail import product_crawling_detail
@@ -22,6 +28,13 @@ def add_tag_to_KB_detail(table_name, secrets):
             product_ads = cursor.fetchall()
 
             cursor.execute('''
+                CREATE TABLE IF NOT EXISTS dataAnalyze_tag_detail (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    tagName VARCHAR(255)
+                )
+            ''')
+            
+            cursor.execute('''
                 CREATE TABLE IF NOT EXISTS dataAnalyze_productTag_detail (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     product_detail_id INT,
@@ -29,17 +42,11 @@ def add_tag_to_KB_detail(table_name, secrets):
                     tagId_id INT,
                     product_id INT,
                     FOREIGN KEY(product_detail_id) REFERENCES dataAnalyze_ProductKB_detail(id) ON DELETE CASCADE,
-                    FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag(id) ON DELETE CASCADE,
+                    FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag_detail(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES dataAnalyze_ProductKB(id) ON DELETE CASCADE
                 )
             ''')
 
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS dataAnalyze_tag_detail (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
-                    tagName VARCHAR(255)
-                )
-            ''')
 
             # ThreadPoolExecutor 사용
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -60,15 +67,15 @@ def add_tag_to_KB_detail(table_name, secrets):
             
 def main_detail_ver():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..','secret.json')
+    secret_file = os.path.join(base_dir, '..', '..','..','secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
-        
+            
     conn = connect_db(secrets)
     cursor = conn.cursor()
-    
     listing_serial_number_lists = get_listing_serial_number(conn, cursor)         #productKB에서 모든 매물일련번호 리스트 가져오기 
+
     for serial_number in listing_serial_number_lists:
         detail_info = product_crawling_detail(serial_number, secrets)  # 매물 상세 정보 가져오기
         detail_and_save_data(detail_info, serial_number, conn, cursor)     # 가져온 상세 정보로 데이터베이스에 저장
