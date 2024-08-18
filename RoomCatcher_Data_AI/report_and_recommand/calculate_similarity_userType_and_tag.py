@@ -13,7 +13,7 @@ import torch, numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from django.core.exceptions import ImproperlyConfigured
 import numpy as np
-from common import connect_db
+from .common import connect_db
 
 # KoELECTRA 모델과 토크나이저 로드
 tokenizer = ElectraTokenizer.from_pretrained("monologg/koelectra-base-v3-discriminator")
@@ -56,7 +56,6 @@ def get_user_input_embedding(user_input, client):
 # 유저 입력을 받아와서 가장 유사한 태그들을 찾는 함수
 def find_best_match_tags(user_input):
     try:
-        
         base_dir = os.path.dirname(os.path.abspath(__file__))
         secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
 
@@ -67,26 +66,35 @@ def find_best_match_tags(user_input):
 
         user_embedding = get_user_input_embedding(user_input, client)
         
-        #DB에서 tags들의 임베딩값을 가져옴 
+        # 임베딩의 목표 차원 
+        target_dim = 1536
+
+        # 유저 임베딩 차원을 맞춤
+        user_embedding = ensure_same_dimension(user_embedding, target_dim)
+        
+        # DB에서 tags들의 임베딩값을 가져옴
         conn = connect_db(secrets)
         cursor = conn.cursor()
+        
         cursor.execute('SELECT tagName, embedding FROM dataAnalyze_tag_detail')
         tags_embeddings = cursor.fetchall()
-        embeddings = [embedding for _ , embedding in tags_embeddings]
-        tags = [tag for tag, _ in tags_embeddings]
-        # 모든 특징 유형 설명과 유저 입력 간의 유사도 계산
-        similarities = cosine_similarity(user_embedding.reshape(1, -1), embeddings).flatten()
         
-        # 가장 높은 유사도를 가진 유형의 인덱스를 찾음
+        # 임베딩을 numpy 배열로 변환하고 차원 맞춤
+        embeddings = [ensure_same_dimension(np.frombuffer(embedding, dtype=np.float32), target_dim) for _, embedding in tags_embeddings]
+        tags = [tag for tag, _ in tags_embeddings]
+        
+        # 모든 특징 유형 설명과 유저 입력 간의 유사도 계산
+        similarities = cosine_similarity(user_embedding.reshape(1, -1), np.vstack(embeddings)).flatten()
+        
+        # 가장 높은 유사도를 가진 태그의 인덱스를 찾음
         sorted_indices = np.argsort(similarities)[::-1]
         
         return [tags[i] for i in sorted_indices] 
     
     except Exception as e:
-        
         print(e)
         traceback.print_exc()
-        return None, None
+        return None
     
 # 태그와 사용자 유형 간의 유사도를 계산해서 해당 사용자 유형에서 가장 유사한 태그들을 순서대로 반환한다. 
 def bring_tags_to_user_type(index):
@@ -123,7 +131,7 @@ def bring_tags_to_user_type(index):
                                                    user_type_list_embedding[index].reshape(1, -1)).flatten()[0],
                              reverse=True)
         
-        return sorted_tags
+        return sorted_tags[:int(len(sorted_tags)/8)]
     except Exception as e:
         print(e)
         traceback.print_exc()
@@ -215,4 +223,4 @@ def find_best_match_type(user_input, user_type_list):
 
 # print(find_best_match(user_input="나는 충무로역 근처의 집을 원해. 월세는 상관없는데 옵션 가구들이 많았으면 좋겠고 지하철역이 하나정도 있었으면 좋겠어.", user_type_list=user_type_list))\
 if __name__ == '__main__':
-    bring_tags_to_user_type()
+    find_best_match_tags("나는 충무로역 근처의 집을 원해. 월세는 상관없는데 옵션 가구들이 많았으면 좋겠고 지하철역이 하나정도 있었으면 좋겠어.")    
