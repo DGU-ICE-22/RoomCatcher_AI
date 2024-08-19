@@ -73,11 +73,16 @@ class ReportView(APIView):
                     if tag not in user_tags and len(user_tags) < 10:
                         user_tags.append(tag)
                 
+                # 이 시점에서 User 엔티티에 사용자 유형과 사용자 태그를 저장.
+                
                 #3. 도출된 사용자 유형에 해당하는 태그들 중 1번에서 가져왔던 태그들과 중복되는 태그들을 response로 보내줌. 
                 return JsonResponse({'userTypeName':  correct_type_name,
                                     'userTypeExplain' : correct_type_explain,
                                     'user_tags': user_tags}, status=200)
             else:
+                
+                # 이 시점에서 User 엔티티에 사용자 유형과 사용자 태그를 저장.
+
                  #3. 도출된 사용자 유형에 해당하는 태그들 중 1번에서 가져왔던 태그들과 중복되는 태그들을 response로 보내줌. 
                 return JsonResponse({'userTypeName':  correct_type_name,
                                     'userTypeExplain' : correct_type_explain,
@@ -87,3 +92,7 @@ class ReportView(APIView):
             print(f"Error: {e}")
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
+        
+class productRecommandView(APIView):
+    def get(self, request, *args, **kwargs):
+        return
