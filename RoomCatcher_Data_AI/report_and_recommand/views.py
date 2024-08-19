@@ -95,4 +95,9 @@ class ReportView(APIView):
         
 class productRecommandView(APIView):
     def get(self, request, *args, **kwargs):
+        
+        # 사용자의 엔티티에서 사용자 태그를 가져옴. 
+        # 그 태그를 가지고 있는 매물들을 가져옴.
+        # 매물 반환. 
+        
         return
