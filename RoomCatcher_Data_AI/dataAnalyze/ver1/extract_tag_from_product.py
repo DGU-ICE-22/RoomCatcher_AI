@@ -54,19 +54,19 @@ def add_tags_to_db(secrets):
 
     # 기존 테이블에 'tag' 열 추가
     try:
-        cursor.execute("ALTER TABLE dataAnalyze_productTag ADD COLUMN tag TEXT")
+        cursor.execute("ALTER TABLE data_analyze_product_tag ADD COLUMN tag TEXT")
     except pymysql.MySQLError as e:
         print(f"Column 'tag' already exists or another error occurred: {e}")
 
     # 모든 행에 대해 태그를 생성하고 업데이트
-    cursor.execute("SELECT id, title FROM dataAnalyze_product")
+    cursor.execute("SELECT id, title FROM data_analyze_product")
     rows = cursor.fetchall()
 
     for row in rows:
         row_id, title = row
         tags = ', '.join(extract_keywords(title))  # 태그를 쉼표로 구분된 문자열로 변환
         print(tags)
-        cursor.execute("UPDATE dataAnalyze_productTag SET tag = %s WHERE id = %s", (tags, row_id))
+        cursor.execute("UPDATE data_analyze_product_tag SET tag = %s WHERE id = %s", (tags, row_id))
 
     conn.commit()
     conn.close()

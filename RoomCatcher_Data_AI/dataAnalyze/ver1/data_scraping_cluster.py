@@ -33,7 +33,7 @@ def create_address(item, secrets):
 def process_and_save_data(room_data, conn, cursor, secrets):
     
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS dataAnalyze_ProductKB (
+        CREATE TABLE IF NOT EXISTS data_analyze_ProductKB (
             id INTEGER PRIMARY KEY AUTO_INCREMENT,
             층구분 TEXT,
             연면적 REAL,
@@ -103,7 +103,7 @@ def process_and_save_data(room_data, conn, cursor, secrets):
                 registration_date = str(datetime.strptime(item.get('등록년월일', ''), '%Y.%m.%d').date() if item.get('등록년월일') else None)
 
                 cursor.execute('''
-                    INSERT INTO dataAnalyze_ProductKB (
+                    INSERT INTO data_analyze_ProductKB (
                         층구분, 연면적, 욕실수, 전세가율, 주택형,
                         최소월세가, 매물유입구분, 매매가, 위도, 건축면적,
                         허위매물처리결과, 건축물용도, 단지명, 월세보증금,
@@ -147,7 +147,7 @@ def add_tag_to_KB_cluster(table_name, secrets):
         conn = connect_db(secrets)
         cursor = conn.cursor()
 
-        if table_name == 'dataAnalyze_ProductKB':
+        if table_name == 'data_analyze_ProductKB':
             cursor.execute('SELECT id, ad_description FROM {}'.format(table_name))
             product_ads = cursor.fetchall()
 
@@ -187,7 +187,7 @@ def main_cluster_ver():        # 매물 데이터 클러스터 단위로 크롤�
     
         room_data = return_room_data(secrets)
         process_and_save_data(room_data, conn, cursor, secrets)
-        # add_tag_to_KB_cluster("dataAnalyze_productkb", secrets)   
+        # add_tag_to_KB_cluster("data_analyze_productkb", secrets)   
         conn.commit() 
     except Exception as e:
         print(f"An error occurred in main_cluster_ver: {e}")

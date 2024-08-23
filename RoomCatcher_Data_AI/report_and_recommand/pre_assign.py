@@ -76,28 +76,28 @@ def insert_user_type_to_db(user_type_list,conn):
 def assign_tag_from_db(user_type_list_embedding, client, conn, clear=False):
     try:
         cursor = conn.cursor()
-        cursor.execute("SHOW COLUMNS FROM dataAnalyze_tag_detail")
+        cursor.execute("SHOW COLUMNS FROM data_analyze_tag_detail")
         columns = [info[0] for info in cursor.fetchall()]
         
         if 'embedding' not in columns:
-            cursor.execute("SELECT id, tagName FROM dataAnalyze_tag_detail")
+            cursor.execute("SELECT id, tagName FROM data_analyze_tag_detail")
             tag_list = cursor.fetchall()
 
-            cursor.execute("ALTER TABLE dataAnalyze_tag_detail ADD COLUMN embedding BLOB")
+            cursor.execute("ALTER TABLE data_analyze_tag_detail ADD COLUMN embedding BLOB")
 
             for tag_id, tagName in tag_list:
                 embedding = get_user_input_embedding(tagName, client)
                 embedding_blob = np.array(embedding).tobytes()
-                cursor.execute("UPDATE dataAnalyze_tag_detail SET embedding = %s WHERE id = %s", (embedding_blob, tag_id))
+                cursor.execute("UPDATE data_analyze_tag_detail SET embedding = %s WHERE id = %s", (embedding_blob, tag_id))
         else:
-            cursor.execute("SELECT id, tagName, embedding FROM dataAnalyze_tag_detail")
+            cursor.execute("SELECT id, tagName, embedding FROM data_analyze_tag_detail")
             tag_list = cursor.fetchall()
 
             for tag_id, tagName, embedding in tag_list:
                 if embedding is None:
                     embedding = get_user_input_embedding(tagName, client)
                     embedding_blob = np.array(embedding).tobytes()
-                    cursor.execute("UPDATE dataAnalyze_tag_detail SET embedding = %s WHERE id = %s", (embedding_blob, tag_id))
+                    cursor.execute("UPDATE data_analyze_tag_detail SET embedding = %s WHERE id = %s", (embedding_blob, tag_id))
 
         conn.commit()
 

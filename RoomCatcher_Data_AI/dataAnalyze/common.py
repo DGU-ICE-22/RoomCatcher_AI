@@ -661,7 +661,7 @@ def assign_tag(listing_serial_number, conn, cursor):
                    비데여부, 싱크대여부, 식기세척기여부, 가스레인지여부, 인덕션레인지여부, 베란다여부, 
                    자체경비원여부, 비디오전화여부, 인터폰여부, cctv여부, 방범창여부, 현관보안여부, 
                    무인택배박스여부, 엘리베이터여부, 테라스여부, 마당여부, 사용승인일, 수정일시 
-            FROM dataAnalyze_ProductKB_detail 
+            FROM data_analyze_product_kb_detail 
             WHERE 매물일련번호 = %s
         ''', (listing_serial_number,))
         rows = cursor.fetchall()
@@ -810,21 +810,21 @@ def process_single_ad(product_ad, secrets):
         tag_ids = []
         for tag in tags:
             # 중복된 tag가 있는지 확인
-            cursor.execute('SELECT id FROM dataAnalyze_tag_detail WHERE tagName = %s', (tag,))
+            cursor.execute('SELECT id FROM data_analyze_tag_detail WHERE tagName = %s', (tag,))
             result = cursor.fetchone()  
             if result:
                 # 중복된 tag가 있으면 해당 tag_id를 가져옴
                 tag_id = result[0]
             else:
                 # 중복된 tag가 없으면 새로운 tag를 삽입하고 tag_id를 가져옴
-                cursor.execute('INSERT INTO dataAnalyze_tag_detail (tagName) VALUES (%s)', (tag,))
+                cursor.execute('INSERT INTO data_analyze_tag_detail (tagName) VALUES (%s)', (tag,))
                 tag_id = cursor.lastrowid
 
             tag_ids.append(tag_id)
 
         # 4. `dataAnalyze_productTag_detail` 테이블에 `id` 및 `tag` 추가
         for tag_id in tag_ids:
-            cursor.execute('INSERT INTO dataAnalyze_productTag_detail (product_detail_id, tagId_id) VALUES (%s, %s)', (product_id, tag_id))
+            cursor.execute('INSERT INTO data_analyze_product_tag_detail (product_detail_id, tagId_id) VALUES (%s, %s)', (product_id, tag_id))
 
         conn.commit()
     except Exception as e:
@@ -837,7 +837,7 @@ def process_single_ad(product_ad, secrets):
 def detail_and_save_data(room_data, listing_serial_number, conn, cursor):
 # MySQL에서는 INTEGER PRIMARY KEY AUTOINCREMENT 대신 INT AUTO_INCREMENT PRIMARY KEY 사용
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS dataAnalyze_ProductKB_detail (
+    CREATE TABLE IF NOT EXISTS data_analyze_product_kb_detail (
     id INT AUTO_INCREMENT PRIMARY KEY,
     매물일련번호 INT,
     단지기본일련번호 INT,
@@ -999,7 +999,7 @@ def detail_and_save_data(room_data, listing_serial_number, conn, cursor):
             # Insert data into the table
             
         cursor.execute('''
-            INSERT INTO dataAnalyze_ProductKB_detail (
+            INSERT INTO data_analyze_product_kb_detail (
                 매물일련번호, 단지기본일련번호, 매물명, 매물도로기본주소, 매물도로상세주소,
                 해당층수, 카테고리1, 카테고리2, 지하구분, 지하층수, 총지상층수,
                 방향명, 공급면적, 전용면적, 연면적, 대지면적, 건축면적,
@@ -1118,7 +1118,7 @@ def detail_and_save_data(room_data, listing_serial_number, conn, cursor):
 
 def get_listing_serial_number(conn, cursor):
 # 데이터베이스에서 listing_serial_number 열의 모든 데이터를 가져옴
-    cursor.execute('SELECT 매물일련번호 FROM dataAnalyze_productKB')
+    cursor.execute('SELECT 매물일련번호 FROM data_analyze_product_kb')
     result = cursor.fetchall()
     # 결과를 리스트로 변환
     listing_serial_numbers = [row[0] for row in result]

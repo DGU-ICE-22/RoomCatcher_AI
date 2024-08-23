@@ -76,7 +76,7 @@ def find_best_match_tags(user_input):
         conn = connect_db(secrets)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT tagName, embedding FROM dataAnalyze_tag_detail')
+        cursor.execute('SELECT tagName, embedding FROM data_analyze_tag_detail')
         tags_embeddings = cursor.fetchall()
         
         # 임베딩을 numpy 배열로 변환하고 차원 맞춤
@@ -116,7 +116,7 @@ def bring_tags_to_user_type(index):
     user_type_list_embedding = [np.frombuffer(embedding[0], dtype=np.float32) for embedding in user_type_list_embedding]
     
     try:
-        cursor.execute("SELECT id, tagName, embedding FROM dataAnalyze_tag_detail")
+        cursor.execute("SELECT id, tagName, embedding FROM data_analyze_tag_detail")
         tag_embeddings = {tagName: np.frombuffer(embedding, dtype=np.float32) for _, tagName, embedding in cursor.fetchall()}
 
         # User type embedding dimension (assuming all user type embeddings have the same dimension)
