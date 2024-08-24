@@ -19,7 +19,7 @@ def add_tag_to_KB_detail(table_name, secrets):
         conn = connect_db(secrets)
         cursor = conn.cursor()
 
-        if table_name == 'dataAnalyze_ProductKB_detail':
+        if table_name == 'data_analyze_product_kb_detail':
             cursor.execute('''
                 SELECT id, 매물일련번호, 특징광고내용
                 FROM {}
@@ -28,22 +28,22 @@ def add_tag_to_KB_detail(table_name, secrets):
             product_ads = cursor.fetchall()
 
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS dataAnalyze_tag_detail (
+                CREATE TABLE IF NOT EXISTS data_analyze_tag_detail (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     tagName VARCHAR(255)
                 )
             ''')
             
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS dataAnalyze_productTag_detail (
+                CREATE TABLE IF NOT EXISTS data_analyze_product_tag_detail (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     product_detail_id INT,
                     listing_serial_number INT,
-                    tagId_id INT,
+                    tag_id INT,
                     product_id INT,
-                    FOREIGN KEY(product_detail_id) REFERENCES dataAnalyze_ProductKB_detail(id) ON DELETE CASCADE,
-                    FOREIGN KEY(tagId_id) REFERENCES dataAnalyze_tag_detail(id) ON DELETE CASCADE,
-                    FOREIGN KEY(product_id) REFERENCES dataAnalyze_ProductKB(id) ON DELETE CASCADE
+                    FOREIGN KEY(product_detail_id) REFERENCES data_analyze_product_kb_detail(id) ON DELETE CASCADE,
+                    FOREIGN KEY(tag_id) REFERENCES data_analyze_tag_detail(id) ON DELETE CASCADE,
+                    FOREIGN KEY(product_id) REFERENCES data_analyze_ProductKB(id) ON DELETE CASCADE
                 )
             ''')
 
@@ -79,7 +79,7 @@ def main_detail_ver():
         detail_info = product_crawling_detail(serial_number, secrets)  # 매물 상세 정보 가져오기
         detail_and_save_data(detail_info, serial_number, conn, cursor)     # 가져온 상세 정보로 데이터베이스에 저장
     
-    add_tag_to_KB_detail("dataAnalyze_ProductKB_detail", secrets)        # 상세 정보에 태그 추가
+    add_tag_to_KB_detail("data_analyze_product_kb_detail", secrets)        # 상세 정보에 태그 추가
     
 if __name__ == "__main__":
     main_detail_ver()

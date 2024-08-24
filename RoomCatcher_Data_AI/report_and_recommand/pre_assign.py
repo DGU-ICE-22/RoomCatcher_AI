@@ -19,8 +19,8 @@ def insert_user_type_to_db(user_type_list,conn):
     try:
         cursor.execute('''CREATE TABLE IF NOT EXISTS report_and_recommand_user_type (
             id INT PRIMARY KEY AUTO_INCREMENT,
-            typeName VARCHAR(64),
-            typeExplain VARCHAR(512),
+            type_name VARCHAR(64),
+            type_explain VARCHAR(512),
             embedding BLOB
             )
         ''')
@@ -33,7 +33,7 @@ def insert_user_type_to_db(user_type_list,conn):
                 typeName, typeExplain = user_type.split('\n',1)
                 embedding = get_user_input_embedding(user_type, client)
                 embedding_blob = np.array(embedding).tobytes()
-                cursor.execute("INSERT INTO report_and_recommand_user_type (typeName, typeExplain, embedding) VALUES (%s, %s, %s)", 
+                cursor.execute("INSERT INTO report_and_recommand_user_type (type_name, type_explain, embedding) VALUES (%s, %s, %s)", 
                                (typeName, typeExplain, embedding_blob))
         
         cursor.execute("SHOW COLUMNS FROM report_and_recommand_user_type")
@@ -45,9 +45,9 @@ def insert_user_type_to_db(user_type_list,conn):
                 typeName, typeExplain = user_type.split('\n',1)
                 embedding = get_user_input_embedding(user_type, client)
                 embedding_blob = np.array(embedding).tobytes()
-                cursor.execute("UPDATE report_and_recommand_user_type SET embedding = %s WHERE typeName = %s", (embedding_blob, typeName))
+                cursor.execute("UPDATE report_and_recommand_user_type SET embedding = %s WHERE type_name = %s", (embedding_blob, typeName))
         else:
-            cursor.execute("SELECT typeExplain, embedding FROM report_and_recommand_user_type")
+            cursor.execute("SELECT type_explain, embedding FROM report_and_recommand_user_type")
             user_type_embeddings = {user_type: np.frombuffer(embedding, dtype=np.float32) for user_type, embedding in cursor.fetchall()}
             
             # User type embedding dimension (assuming all user type embeddings have the same dimension)
@@ -62,7 +62,7 @@ def insert_user_type_to_db(user_type_list,conn):
                 if user_type not in user_type_embeddings:
                     embedding = get_user_input_embedding(user_type, client)
                     embedding_blob = np.array(embedding).tobytes()
-                    cursor.execute("UPDATE report_and_recommand_user_type SET embedding = %s WHERE typeName = %s", (embedding_blob, typeName))
+                    cursor.execute("UPDATE report_and_recommand_user_type SET embedding = %s WHERE type_name = %s", (embedding_blob, typeName))
         
         conn.commit()
     except Exception as e:
@@ -80,7 +80,7 @@ def assign_tag_from_db(user_type_list_embedding, client, conn, clear=False):
         columns = [info[0] for info in cursor.fetchall()]
         
         if 'embedding' not in columns:
-            cursor.execute("SELECT id, tagName FROM data_analyze_tag_detail")
+            cursor.execute("SELECT id, tag_name FROM data_analyze_tag_detail")
             tag_list = cursor.fetchall()
 
             cursor.execute("ALTER TABLE data_analyze_tag_detail ADD COLUMN embedding BLOB")
@@ -90,7 +90,7 @@ def assign_tag_from_db(user_type_list_embedding, client, conn, clear=False):
                 embedding_blob = np.array(embedding).tobytes()
                 cursor.execute("UPDATE data_analyze_tag_detail SET embedding = %s WHERE id = %s", (embedding_blob, tag_id))
         else:
-            cursor.execute("SELECT id, tagName, embedding FROM data_analyze_tag_detail")
+            cursor.execute("SELECT id, tag_name, embedding FROM data_analyze_tag_detail")
             tag_list = cursor.fetchall()
 
             for tag_id, tagName, embedding in tag_list:

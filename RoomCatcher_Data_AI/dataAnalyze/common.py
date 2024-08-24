@@ -810,21 +810,21 @@ def process_single_ad(product_ad, secrets):
         tag_ids = []
         for tag in tags:
             # 중복된 tag가 있는지 확인
-            cursor.execute('SELECT id FROM data_analyze_tag_detail WHERE tagName = %s', (tag,))
+            cursor.execute('SELECT id FROM data_analyze_tag_detail WHERE tag_name = %s', (tag,))
             result = cursor.fetchone()  
             if result:
                 # 중복된 tag가 있으면 해당 tag_id를 가져옴
                 tag_id = result[0]
             else:
                 # 중복된 tag가 없으면 새로운 tag를 삽입하고 tag_id를 가져옴
-                cursor.execute('INSERT INTO data_analyze_tag_detail (tagName) VALUES (%s)', (tag,))
+                cursor.execute('INSERT INTO data_analyze_tag_detail (tag_name) VALUES (%s)', (tag,))
                 tag_id = cursor.lastrowid
 
             tag_ids.append(tag_id)
 
         # 4. `dataAnalyze_productTag_detail` 테이블에 `id` 및 `tag` 추가
         for tag_id in tag_ids:
-            cursor.execute('INSERT INTO data_analyze_product_tag_detail (product_detail_id, tagId_id) VALUES (%s, %s)', (product_id, tag_id))
+            cursor.execute('INSERT INTO data_analyze_product_tag_detail (product_detail_id, tag_id) VALUES (%s, %s)', (product_id, tag_id))
 
         conn.commit()
     except Exception as e:
