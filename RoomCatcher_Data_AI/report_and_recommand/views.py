@@ -67,6 +67,7 @@ class ReportView(APIView):
                             
             if len(user_tags) < 10:
                 print("user_tags 교집합 부족")
+                print(user_tags)
 
                 # sorted_dummy_tags[0]에서 중복되지 않는 항목을 user_tags에 추가
                 for tag in sorted_dummy_tags[0]:
