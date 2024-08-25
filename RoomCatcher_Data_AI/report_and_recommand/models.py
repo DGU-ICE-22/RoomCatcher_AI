@@ -2,7 +2,7 @@ from django.db import models
 
 class DataAnalyzeTagDetail(models.Model):
     id = models.AutoField(primary_key=True)
-    tag_name = models.CharField(max_length=64, primary_key=True)
+    tag_name = models.CharField(max_length=64)
     embedding = models.BinaryField()
 
     def __str__(self):
