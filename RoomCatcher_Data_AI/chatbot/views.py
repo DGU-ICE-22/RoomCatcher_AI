@@ -21,10 +21,17 @@ class ChatApiView(APIView):
                 validated_data = serializer.validated_data
                 auth_info = request.META.get('HTTP_AUTHORIZATION', None)
                 if not auth_info or not auth_info.startswith('Bearer '):
-                    return JsonResponse({'error': 'Auth information is missing or invalid'}, status=400)
+                    auth_info = request.headers.get('Authorization', None)
+                    if not auth_info and not auth_info.startswith('Bearer ') and not request.headers.get('Authorization'):
+                        return JsonResponse({'error': 'Auth information is missing or invalid'}, status=400)
+                    token = auth_info
+                else:
+                    # Bearer 토큰에서 접두사 제거
+                    token = auth_info.split(' ')[1]
+                    
+                print(auth_info)
 
-                # Bearer 토큰에서 접두사 제거
-                token = auth_info.split(' ')[1]
+                
                 
                 # 토큰을 해싱하여 세션 키 생성
                 session_key = f'chatbot_{hashlib.sha256(token.encode()).hexdigest()}'
