@@ -10,6 +10,7 @@ from .characters import system_role, instruction
 from chatbot.chatbot import Chatbot
 from .common import model
 from .serializers import ChatRequestSerializer
+import hashlib
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatApiView(APIView):
     def post(self, request, *args, **kwargs):
@@ -19,10 +20,16 @@ class ChatApiView(APIView):
             if serializer.is_valid():
                 validated_data = serializer.validated_data
                 auth_info = request.META.get('HTTP_AUTHORIZATION', None)
-                if not auth_info:
-                    return JsonResponse({'error': 'Auth information is missing'}, status=400)
+                if not auth_info or not auth_info.startswith('Bearer '):
+                    return JsonResponse({'error': 'Auth information is missing or invalid'}, status=400)
+
+                # Bearer 토큰에서 접두사 제거
+                token = auth_info.split(' ')[1]
                 
-                session_key = f'chatbot_{auth_info}'
+                # 토큰을 해싱하여 세션 키 생성
+                session_key = f'chatbot_{hashlib.sha256(token.encode()).hexdigest()}'
+                print(request.session.keys())
+                print(session_key in request.session)
                 user_name = validated_data.get('user_name', '사용자')
 
                 if session_key in request.session:
@@ -90,7 +97,11 @@ class ChatApiView(APIView):
                                         })
                 else:
                     request.session[session_key] = chatbot.to_dict()
-                
+                    request.session.modified = True  # 세션이 수정되었음을 Django에 알립니다.
+                    request.session.save()
+
+                print("request", request.session.keys())
+                print(session_key in request.session)
                 return JsonResponse({"response_message": response_message,
                                      "chatbot": chatbot.to_dict(),
                                      "report_data": None

@@ -60,6 +60,8 @@ INSTALLED_APPS = [
 ]
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True  # HTTPS 환경에서만 True로 설정
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -156,3 +158,4 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3001',  # React 개발 서버의 URL
 ]
 CORS_ALLOW_METHODS = ['GET', 'POST', 'OPTIONS']  # 허용할 메소드
+CORS_ALLOW_CREDENTIALS = True  # 쿠키를 주고받을 수 있도록 허용
