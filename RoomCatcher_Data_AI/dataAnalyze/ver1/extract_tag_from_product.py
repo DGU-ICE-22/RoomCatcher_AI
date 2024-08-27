@@ -17,7 +17,7 @@ def extract_keywords(text):
     # 요청할 URL
     url = 'https://wordcount.com/api/extract_keywords'
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
+    secret_file = os.path.join(base_dir, '..', 'secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
@@ -75,7 +75,7 @@ def add_tags_to_db(secrets):
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..','secret.json')
+    secret_file = os.path.join(base_dir, '..', 'secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())

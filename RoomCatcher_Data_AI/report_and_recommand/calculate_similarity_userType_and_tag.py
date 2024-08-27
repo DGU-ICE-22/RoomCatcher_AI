@@ -57,7 +57,7 @@ def get_user_input_embedding(user_input, client):
 def find_best_match_tags(user_input):
     try:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
+        secret_file = os.path.join(base_dir, '..', 'secret.json')
 
         with open(secret_file) as f:
             secrets = json.loads(f.read())
@@ -100,7 +100,7 @@ def find_best_match_tags(user_input):
 def bring_tags_to_user_type(index):
     
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
+    secret_file = os.path.join(base_dir, '..', 'secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
@@ -173,7 +173,7 @@ def find_best_match_type(user_input, user_type_list):
     #OpenAI API를 사용한 유사도 계산
     try:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
+        secret_file = os.path.join(base_dir, '..', 'secret.json')
 
         with open(secret_file) as f:
             secrets = json.loads(f.read())

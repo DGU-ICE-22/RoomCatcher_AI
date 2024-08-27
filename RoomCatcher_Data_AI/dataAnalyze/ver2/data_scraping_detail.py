@@ -66,7 +66,7 @@ def add_tag_to_KB_detail(table_name, secrets):
             
 def main_detail_ver():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..','..','secret.json')
+    secret_file = os.path.join(base_dir, '..', '..','secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())

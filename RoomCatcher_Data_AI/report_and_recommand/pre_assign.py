@@ -112,7 +112,7 @@ def assign_tag_from_db(user_type_list_embedding, client, conn, clear=False):
 if __name__ == "__main__":
     user_type_list = [type_1_money, type_2_option, type_3_structure, type_4_transport, type_5_nature, type_6_emotion, type_7_business, type_8_student]
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
+    secret_file = os.path.join(base_dir, '..', 'secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())

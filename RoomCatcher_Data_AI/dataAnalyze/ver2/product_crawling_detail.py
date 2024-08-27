@@ -46,7 +46,7 @@ def product_crawling_detail(listing_id, secrets):
     
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..', '..', '..','secret.json')
+    secret_file = os.path.join(base_dir, '..', '..','secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())

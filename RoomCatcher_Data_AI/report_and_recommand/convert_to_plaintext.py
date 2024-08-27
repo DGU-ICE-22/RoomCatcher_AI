@@ -15,7 +15,7 @@ def get_secret(setting, secrets):
 def convert_to_plaintext(content):
     try:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        secret_file = os.path.join(base_dir, '..', '..', 'secret.json')
+        secret_file = os.path.join(base_dir, '..', 'secret.json')
 
         with open(secret_file) as f:
             secrets = json.loads(f.read())

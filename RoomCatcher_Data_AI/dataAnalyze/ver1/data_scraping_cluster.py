@@ -171,7 +171,7 @@ def add_tag_to_KB_cluster(table_name, secrets):
             
 def main_cluster_ver():        # 매물 데이터 클러스터 단위로 크롤링 및 저장
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    secret_file = os.path.join(base_dir, '..','..','..','secret.json')
+    secret_file = os.path.join(base_dir, '..','..','secret.json')
 
     with open(secret_file) as f:
         secrets = json.loads(f.read())
