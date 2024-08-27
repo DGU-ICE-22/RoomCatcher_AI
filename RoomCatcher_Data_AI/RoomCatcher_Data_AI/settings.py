@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True  # HTTPS 환경에서만 True로 설정
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
