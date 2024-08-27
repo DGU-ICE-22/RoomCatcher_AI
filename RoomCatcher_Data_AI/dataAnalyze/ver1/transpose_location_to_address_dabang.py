@@ -2,7 +2,7 @@ import requests
 import os 
 import json
 from django.core.exceptions import ImproperlyConfigured
-from product_crawling import product_crawling
+from dataAnalyze.ver1.product_crawling import product_crawling
 import sqlite3
 
 # 주소 변환 함수 
@@ -69,7 +69,7 @@ def transpose_location_to_address():
     try:
         # 테이블 생성 (없을 경우)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS dataAnalyze_product (
+            CREATE TABLE IF NOT EXISTS data_analyze_product (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 productRoomType TEXT,
                 productSellingType TEXT,
@@ -86,7 +86,7 @@ def transpose_location_to_address():
         # 데이터 삽입
         for room in room_data:
             cursor.execute("""
-                INSERT INTO dataAnalyze_product (productRoomType, productSellingType, productIsQuick, productPrice, productIsContract, productName, productInfo, productImage, productAddr)
+                INSERT INTO data_analyze_product (productRoomType, productSellingType, productIsQuick, productPrice, productIsContract, productName, productInfo, productImage, productAddr)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 room[1][0],
@@ -127,7 +127,7 @@ def update_missing_addresses():
 
     try:
         # 결측치가 있는 레코드 선택
-        cursor.execute("SELECT id, location FROM dataAnalyze_product WHERE productAddr IS NULL OR productAddr = ''")
+        cursor.execute("SELECT id, location FROM data_analyze_product WHERE productAddr IS NULL OR productAddr = ''")
         rows = cursor.fetchall()
 
         # 결측치 주소 업데이트
@@ -137,7 +137,7 @@ def update_missing_addresses():
             x, y = location[0], location[1]
             address = get_address_from_coordinates(x, y, API_KEY)
             if address:
-                cursor.execute("UPDATE dataAnalyze_product SET productAddr = ? WHERE id = ?", (address, row_id))
+                cursor.execute("UPDATE data_analyze_product SET productAddr = ? WHERE id = ?", (address, row_id))
 
         # 변경사항 커밋
         connection.commit()

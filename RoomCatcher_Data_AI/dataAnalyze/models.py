@@ -14,7 +14,7 @@ class Product(models.Model):
     productIsQuick = models.BooleanField()
     
     class Meta:
-        db_table = 'dataAnalyze_product'
+        db_table = 'data_analyze_product'
 
 class Tag(models.Model):
     id = models.IntegerField(primary_key=True)

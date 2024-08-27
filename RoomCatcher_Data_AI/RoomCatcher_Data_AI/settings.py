@@ -30,7 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-secret_file = os.path.join(BASE_DIR,'..','secret.json')
+secret_file = os.path.join(BASE_DIR,'secret.json')
 
 with open(secret_file) as f:
     secrets = json.loads(f.read())
@@ -38,9 +38,9 @@ with open(secret_file) as f:
 SECRET_KEY = get_secret("SECRET_KEY",secrets)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1']
 
 
 # Application definition
@@ -54,9 +54,15 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "dataAnalyze",
     "rest_framework",
+    "report_and_recommand",
+    "chatbot",
+    'corsheaders',
 ]
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True  # HTTPS 환경에서만 True로 설정
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -72,6 +78,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = "RoomCatcher_Data_AI.urls"
@@ -135,7 +143,7 @@ TIME_ZONE = "Asia/Seoul"
 USE_I18N = True
 
 USE_TZ = True
-
+APPEND_SLASH = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -146,3 +154,9 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3001',  # React 개발 서버의 URL
+]
+CORS_ALLOW_METHODS = ['GET', 'POST', 'OPTIONS']  # 허용할 메소드
+CORS_ALLOW_CREDENTIALS = True  # 쿠키를 주고받을 수 있도록 허용
